@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -o errtrace
+
+shopt -s extglob
+
+echo "HELLO!"
