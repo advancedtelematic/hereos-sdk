@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+export PATH="`dirname $BASH_SOURCE`:$PATH"

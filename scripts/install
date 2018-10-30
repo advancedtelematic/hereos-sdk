@@ -4,4 +4,11 @@ set -o errtrace
 
 shopt -s extglob
 
-echo "HELLO!"
+cp -a `dirname $BASH_SOURCE` ~/.hereos/
+
+echo "HereOS SDK is installed"
+echo "Run:"
+echo ""
+echo "  . ~/.hereos/scripts/register"
+echo ""
+echo "To load the SDK into your environment"
