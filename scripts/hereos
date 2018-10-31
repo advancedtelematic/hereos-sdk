@@ -21,6 +21,8 @@ def usage():
 		print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
 		print ""
 
+class NotAProjectFolder(Exception):
+		"""Raise this when trying to execute project commands from outside a project directory"""
 
 def version():
 		"""Print the version string"""
@@ -40,6 +42,18 @@ def sdk_config_folder():
 def sdk_folder():
 		"""Returns the path to the folder where the SDK is installed"""
 		return os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+
+def find_project_path():
+		"""Searches the directory tree upwards to find the project above CWD
+			 Raises a NotAProjectFolder error if no project is found
+		"""
+		path = os.getcwd()
+		while path != '/':
+				if os.path.exists(os.path.join(path, ".hereos_project")):
+						return path
+				else:
+						path = os.path.realpath(os.path.join(path, ".."))
+		raise NotAProjectFolder
 
 def init_sdk_project(path):
 		"""Creates a new SDK project in the current working directory"""
@@ -62,6 +76,30 @@ def init_sdk_project(path):
 		shutil.copyfile(os.path.join(sdk_config_folder(), "services.yaml"),
 										os.path.join(target, "config", "services.yaml"))
 
+		# Create project marker
+		open(os.path.join(target, ".hereos_project"), 'a').close()
+
+def project_services_path():
+		"""Returns the location of the services path for the current project
+			 Raises a NotAProjectFolder error if not in a project folder
+		"""
+		return os.path.join(find_project_path(), "services")
+
+def create_service(service_name):
+		"""Creates a new microservice from the microservice template"""
+
+		# Create the top-level project services folder unless it exists
+		try:
+				if not os.path.exists(project_services_path()):
+						os.makedirs(project_services_path())
+		except NotAProjectFolder:
+				print "Unable to create a new service - not in a HereOS project folder"
+				sys.exit(2)
+		service_path = os.path.join(project_services_path(), service_name)
+
+		# Copy the template project to the new service folder
+		print "Creating new HereOS template service at: %s" % service_path
+		shutil.copytree(os.path.join(sdk_folder(), "service_template"), service_path)
 
 def main():
 		"""Main entry point for CLI"""
@@ -93,8 +131,9 @@ def main():
 		# Switch on main command
 		try:
 				{
-						'list-services': lambda x: list_services(),
-						'init': 				 lambda x: init_sdk_project(*x)
+						'create-service':	lambda x: create_service(*x),
+						'init': 				 	lambda x: init_sdk_project(*x),
+						'list-services': 	lambda x: list_services()
 				}[args[0]](args[1:])
 		except KeyError:
 				print "Unknown command: '%s'\n" % args[0]
