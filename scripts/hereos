@@ -5,7 +5,7 @@ import getopt, sys, yaml, io
 def usage():
 	print "Welcome to the HereOS SDK"
 	print ""
-	print "Usage: hereos [OPTIONS]"
+	print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
 	print "\tinit\tInitializes a new HereOS project in the current working directory"
 	print "\tlist-services\tShows a list of available microsservices and their installation status"
 	print "\tenable-service <service_name>\tAdds a microservice to the current project's build"
@@ -17,7 +17,7 @@ def usage():
 
 
 def version():
-  print "0.0.1"
+  print "HereOS Version: 0.0.1\n"
 
 def list_services():
 	print "Available microservices in the HereOS SDK:\n"
@@ -31,7 +31,7 @@ def main():
 				sys.exit()
 
 		try:
-				opts, args = getopt.getopt(sys.argv[1:], "hvl", ["help", "version", "list-services"])
+				opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "version"])
 		except getopt.GetoptError as err:
 				# print help information and exit:
 				print str(err)
@@ -49,6 +49,15 @@ def main():
 						sys.exit()
 				else:
 						assert False, "unhandled option"
+
+		try:
+			{
+				'list-services': lambda x: list_services(),
+			}[args[0]](args[1:])
+		except KeyError:
+			print "Unknown command: '%s'\n" % args[0]
+			usage()
+			sys.exit(2)
 
 if __name__ == "__main__":
 		main()
