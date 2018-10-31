@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import getopt, sys
+import getopt, sys, yaml, io
 
 def usage():
   print "Welcome to HereOS"
@@ -8,13 +8,19 @@ def usage():
 def version():
   print "0.0.1"
 
+def list_services():
+	print "Available microservices in the HereOS SDK:\n"
+	for service in yaml.load(io.open("config/services.yaml", "r")):
+		print "\t%s\t%s" % (service["name"], service["description"])
+	print ""
+
 def main():
 		if len(sys.argv) == 1:
 				usage()
 				sys.exit()
 
 		try:
-				opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "version"])
+				opts, args = getopt.getopt(sys.argv[1:], "hvl", ["help", "version", "list-services"])
 		except getopt.GetoptError as err:
 				# print help information and exit:
 				print str(err)
@@ -27,9 +33,14 @@ def main():
 	 			elif o in ("-h", "--help"):
 						usage()
 						sys.exit()
+				elif o in ("-l", "--list-services"):
+						list_services()
+						sys.exit()
 				else:
 						assert False, "unhandled option"
 
 if __name__ == "__main__":
 		main()
+
+# vim: tabstop=4 shiftwidth=4 noexpandtab
 

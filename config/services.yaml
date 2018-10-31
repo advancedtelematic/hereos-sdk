@@ -1,0 +1,7 @@
+---
+- name: aktualizr
+  version: 0.0.1
+  description: OTA Service
+- name: ingest
+  version: 0.0.1
+  description: Ingest data into OLP
