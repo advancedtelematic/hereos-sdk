@@ -3,7 +3,18 @@
 import getopt, sys, yaml, io
 
 def usage():
-  print "Welcome to HereOS"
+	print "Welcome to the HereOS SDK"
+	print ""
+	print "Usage: hereos [OPTIONS]"
+	print "\tinit\tInitializes a new HereOS project in the current working directory"
+	print "\tlist-services\tShows a list of available microsservices and their installation status"
+	print "\tenable-service <service_name>\tAdds a microservice to the current project's build"
+	print "\tcreate-service <service_name>\tCreates a new microservice template and adds it to the build"
+	print "\tdisable-service <service_name>\tRemoves a microservice from the current project's build"
+	print "\tbuild\tBuilds a device image"
+	print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
+	print ""
+
 
 def version():
   print "0.0.1"
