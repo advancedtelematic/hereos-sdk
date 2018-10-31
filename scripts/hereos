@@ -3,33 +3,38 @@
 import getopt, sys, yaml, io
 
 def usage():
-	print "Welcome to the HereOS SDK"
-	print ""
-	print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
-	print "\tinit\tInitializes a new HereOS project in the current working directory"
-	print "\tlist-services\tShows a list of available microsservices and their installation status"
-	print "\tenable-service <service_name>\tAdds a microservice to the current project's build"
-	print "\tcreate-service <service_name>\tCreates a new microservice template and adds it to the build"
-	print "\tdisable-service <service_name>\tRemoves a microservice from the current project's build"
-	print "\tbuild\tBuilds a device image"
-	print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
-	print ""
+		"""Print usage information"""
+		print "Welcome to the HereOS SDK"
+		print ""
+		print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
+		print "\tinit\tInitializes a new HereOS project in the current working directory"
+		print "\tlist-services\tShows a list of available microsservices and their installation status"
+		print "\tenable-service <service_name>\tAdds a microservice to the current project's build"
+		print "\tcreate-service <service_name>\tCreates a new microservice template and adds it to the build"
+		print "\tdisable-service <service_name>\tRemoves a microservice from the current project's build"
+		print "\tbuild\tBuilds a device image"
+		print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
+		print ""
 
 
 def version():
-  print "HereOS Version: 0.0.1\n"
+		"""Print the version string"""
+		print "HereOS Version: 0.0.1\n"
 
 def list_services():
-	print "Available microservices in the HereOS SDK:\n"
-	for service in yaml.load(io.open("config/services.yaml", "r")):
-		print "\t%s\t%s" % (service["name"], service["description"])
-	print ""
+		"""Print a list of available SDK services"""
+		print "Available microservices in the HereOS SDK:\n"
+		for service in yaml.load(io.open("config/services.yaml", "r")):
+				print "\t%s\t%s" % (service["name"], service["description"])
+		print ""
 
 def main():
+		"""Main entry point for CLI"""
 		if len(sys.argv) == 1:
 				usage()
 				sys.exit()
 
+		# Process option arguments
 		try:
 				opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "version"])
 		except getopt.GetoptError as err:
@@ -50,14 +55,15 @@ def main():
 				else:
 						assert False, "unhandled option"
 
+		# Switch on main command
 		try:
-			{
-				'list-services': lambda x: list_services(),
-			}[args[0]](args[1:])
+				{
+						'list-services': lambda x: list_services(),
+				}[args[0]](args[1:])
 		except KeyError:
-			print "Unknown command: '%s'\n" % args[0]
-			usage()
-			sys.exit(2)
+				print "Unknown command: '%s'\n" % args[0]
+				usage()
+				sys.exit(2)
 
 if __name__ == "__main__":
 		main()
