@@ -6,6 +6,7 @@ import yaml
 import io
 import os
 import shutil
+import traceback
 
 def usage():
 		"""Print usage information"""
@@ -28,12 +29,71 @@ def version():
 		"""Print the version string"""
 		print "HereOS Version: 0.0.1\n"
 
+def project_services_config_path():
+		project_path = find_project_path()
+		return os.path.join(project_path, "config", "services.yaml")
+
 def list_services():
-		"""Print a list of available SDK services"""
-		print "Available microservices in the HereOS SDK:\n"
-		for service in yaml.load(io.open(os.path.join(sdk_config_folder(), "services.yaml"), "r")):
-				print "\t%s\t%s" % (service["name"], service["description"])
+		"""Print a list of available SDK services
+			 If executed from a HereOS project folder, will include information about the active
+			 services in this project
+		"""
+		project = False
+		try:
+				services_config_path = project_services_config_path()
+				project = True
+		except NotAProjectFolder:
+				services_config_path = os.path.join(sdk_config_folder(), "services.yaml")
+		
+		if project:
+				print "Available microservices in the current project:\n"
+		else:
+				print "Available microservices in the HereOS SDK:\n"
+
+		for service in yaml.load(io.open(services_config_path, "r")):
+				if "enabled" in service:
+						marker = "*"
+				else:
+						marker = ""
+				print "\t%s%s\t%s" % (marker, service["name"], service["description"])
 		print ""
+
+def load_service_config(service_name):
+		"""Loads the config object for a particular service in the current project"""
+		return filter(lambda service: service["name"] == service_name, load_project_config())[0]
+
+def load_project_config():
+		"""Loads the config object for the current project"""
+		return yaml.load(io.open(project_services_config_path(), "r"))
+
+def write_service_config(service_config):
+		"""Writes the config object for a particular service in the current project"""
+		config = filter(lambda service: service["name"] != service_config["name"], load_project_config())
+		config.append(service_config)
+		write_project_config(config)
+
+def write_project_config(config):
+		"""Writes the config object to the project config file"""
+		with io.open(project_services_config_path(), "w") as yaml_file:
+			yaml_file.write(unicode(yaml.dump(config, default_flow_style=False)))
+
+def add_service_to_project(service_name, description, version):
+		"""Adds a service to the current project config"""
+		config = load_project_config()
+		config.append({ "name": service_name, "description": description, "version": version })
+		write_project_config(config)
+
+def enable_service(service_name):
+		"""Enables a service for building in the current image"""
+		config = load_service_config(service_name)
+		config["enabled"] = True
+		write_service_config(config)
+
+def disable_service(service_name):
+		"""Enables a service for building in the current image"""
+		config = load_service_config(service_name)
+		config.pop("enabled", None)
+		write_service_config(config)
 
 def sdk_config_folder():
 		"""Returns the path to the SDK config folder"""
@@ -101,6 +161,10 @@ def create_service(service_name):
 		print "Creating new HereOS template service at: %s" % service_path
 		shutil.copytree(os.path.join(sdk_folder(), "service_template"), service_path)
 
+		# Register the service with the current project and enable it
+		add_service_to_project(service_name, "Template microservice", "0.0.1")
+		enable_service(service_name)
+
 def main():
 		"""Main entry point for CLI"""
 		if len(sys.argv) == 1:
@@ -131,12 +195,15 @@ def main():
 		# Switch on main command
 		try:
 				{
-						'create-service':	lambda x: create_service(*x),
-						'init': 				 	lambda x: init_sdk_project(*x),
-						'list-services': 	lambda x: list_services()
+						'create-service':	 lambda x:  create_service(*x),
+						'disable-service': lambda x:  disable_service(*x),
+						'enable-service':  lambda x:  enable_service(*x),
+						'init': 				 	 lambda x:  init_sdk_project(*x),
+						'list-services': 	 lambda x : list_services()
 				}[args[0]](args[1:])
-		except KeyError:
-				print "Unknown command: '%s'\n" % args[0]
+		except KeyError as err:
+				print "Unknown command: '%s' (%s)\n" % (args[0], err)
+				traceback.print_exception(*sys.exc_info())
 				usage()
 				sys.exit(2)
 
