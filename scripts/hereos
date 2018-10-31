@@ -1,210 +1,215 @@
 #!/usr/bin/env python
+"""HereOS SDK script
+
+   Very basic initial script for HereOS SDK
+"""
 
 import getopt
 import sys
-import yaml
 import io
 import os
 import shutil
+import traceback
+import yaml
 
 def usage():
-		"""Print usage information"""
-		print "Welcome to the HereOS SDK"
-		print ""
-		print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
-		print "\tinit <path>\tInitializes a new HereOS project at the specified path"
-		print "\tlist-services\tShows a list of available microsservices and their installation status"
-		print "\tenable-service <service_name>\tAdds a microservice to the current project's build"
-		print "\tcreate-service <service_name>\tCreates a new microservice template and adds it to the build"
-		print "\tdisable-service <service_name>\tRemoves a microservice from the current project's build"
-		print "\tbuild\tBuilds a device image"
-		print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
-		print ""
+    """Print usage information"""
+    print "Welcome to the HereOS SDK"
+    print ""
+    print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
+    print "\tinit <path>\tInitializes a new HereOS project at the specified path"
+    print "\tlist-services\tShows a list of available microsservices and their installation status"
+    print "\tenable-service <service_name>\tAdds microservice to the current project's build"
+    print "\tcreate-service <service_name>\tCreates a new microservice and adds it to the build"
+    print "\tdisable-service <service_name>\tRemoves microservice from the current project's build"
+    print "\tbuild\tBuilds a device image"
+    print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
+    print ""
 
 class NotAProjectFolder(Exception):
-		"""Raise this when trying to execute project commands from outside a project directory"""
+    """Raise this when trying to execute project commands from outside a project directory"""
 
 def version():
-		"""Print the version string"""
-		print "HereOS Version: 0.0.1\n"
+    """Print the version string"""
+    print "HereOS Version: 0.0.1\n"
 
 def project_services_config_path():
-		project_path = find_project_path()
-		return os.path.join(project_path, "config", "services.yaml")
+    """Return the path for the project-specific config file"""
+    project_path = find_project_path()
+    return os.path.join(project_path, "config", "services.yaml")
 
 def list_services():
-		"""Print a list of available SDK services
-			 If executed from a HereOS project folder, will include information about the active
-			 services in this project
-		"""
-		project = False
-		try:
-				services_config_path = project_services_config_path()
-				project = True
-		except NotAProjectFolder:
-				services_config_path = os.path.join(sdk_config_folder(), "services.yaml")
-		
-		if project:
-				print "Available microservices in the current project:\n"
-		else:
-				print "Available microservices in the HereOS SDK:\n"
+    """Print a list of available SDK services
+       If executed from a HereOS project folder, will include information about the active
+       services in this project
+    """
+    project = False
+    try:
+        services_config_path = project_services_config_path()
+        project = True
+    except NotAProjectFolder:
+        services_config_path = os.path.join(sdk_config_folder(), "services.yaml")
 
-		for service in yaml.load(io.open(services_config_path, "r")):
-				if "enabled" in service:
-						marker = "*"
-				else:
-						marker = ""
-				print "\t%s%s\t%s" % (marker, service["name"], service["description"])
-		print ""
+    if project:
+        print "Available microservices in the current project:\n"
+    else:
+        print "Available microservices in the HereOS SDK:\n"
+
+    for service in yaml.load(io.open(services_config_path, "r")):
+        if "enabled" in service:
+            marker = "*"
+        else:
+            marker = ""
+        print "\t%s%s\t%s" % (marker, service["name"], service["description"])
+    print ""
 
 def load_service_config(service_name):
-		"""Loads the config object for a particular service in the current project"""
-		return filter(lambda service: service["name"] == service_name, load_project_config())[0]
+    """Loads the config object for a particular service in the current project"""
+    return [service for service in load_project_config() if service["name"] == service_name][0]
 
 def load_project_config():
-		"""Loads the config object for the current project"""
-		return yaml.load(io.open(project_services_config_path(), "r"))
+    """Loads the config object for the current project"""
+    return yaml.load(io.open(project_services_config_path(), "r"))
 
 def write_service_config(service_config):
-		"""Writes the config object for a particular service in the current project"""
-		config = filter(lambda service: service["name"] != service_config["name"], load_project_config())
-		config.append(service_config)
-		write_project_config(config)
+    """Writes the config object for a particular service in the current project"""
+    config = [s for s in load_project_config() if s["name"] != service_config["name"]]
+    config.append(service_config)
+    write_project_config(config)
 
 def write_project_config(config):
-		"""Writes the config object to the project config file"""
-		with io.open(project_services_config_path(), "w") as yaml_file:
-			yaml_file.write(unicode(yaml.dump(config, default_flow_style=False)))
+    """Writes the config object to the project config file"""
+    with io.open(project_services_config_path(), "w") as yaml_file:
+        yaml_file.write(unicode(yaml.dump(config, default_flow_style=False)))
 
-def add_service_to_project(service_name, description, version):
-		"""Adds a service to the current project config"""
-		config = load_project_config()
-		config.append({ "name": service_name, "description": description, "version": version })
-		write_project_config(config)
+def add_service_to_project(service_name, description, version_string):
+    """Adds a service to the current project config"""
+    config = load_project_config()
+    config.append({"name": service_name, "description": description, "version": version_string})
+    write_project_config(config)
 
 def enable_service(service_name):
-		"""Enables a service for building in the current image"""
-		config = load_service_config(service_name)
-		config["enabled"] = True
-		write_service_config(config)
+    """Enables a service for building in the current image"""
+    config = load_service_config(service_name)
+    config["enabled"] = True
+    write_service_config(config)
 
 def disable_service(service_name):
-		"""Enables a service for building in the current image"""
-		config = load_service_config(service_name)
-		config.pop("enabled", None)
-		write_service_config(config)
+    """Enables a service for building in the current image"""
+    config = load_service_config(service_name)
+    config.pop("enabled", None)
+    write_service_config(config)
 
 def sdk_config_folder():
-		"""Returns the path to the SDK config folder"""
-		return os.path.join(sdk_folder(), "config")
+    """Returns the path to the SDK config folder"""
+    return os.path.join(sdk_folder(), "config")
 
 def sdk_folder():
-		"""Returns the path to the folder where the SDK is installed"""
-		return os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+    """Returns the path to the folder where the SDK is installed"""
+    return os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 
 def find_project_path():
-		"""Searches the directory tree upwards to find the project above CWD
-			 Raises a NotAProjectFolder error if no project is found
-		"""
-		path = os.getcwd()
-		while path != '/':
-				if os.path.exists(os.path.join(path, ".hereos_project")):
-						return path
-				else:
-						path = os.path.realpath(os.path.join(path, ".."))
-		raise NotAProjectFolder
+    """Searches the directory tree upwards to find the project above CWD
+       Raises a NotAProjectFolder error if no project is found
+    """
+    path = os.getcwd()
+    while path != '/':
+        if os.path.exists(os.path.join(path, ".hereos_project")):
+            return path
+        else:
+            path = os.path.realpath(os.path.join(path, ".."))
+    raise NotAProjectFolder
 
 def init_sdk_project(path):
-		"""Creates a new SDK project in the current working directory"""
-		print "SDK folder: %s" % sdk_folder()
-		target = path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
+    """Creates a new SDK project in the current working directory"""
+    print "SDK folder: %s" % sdk_folder()
+    target = path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
 
-		# Create target folder
-		print "Creating project target folder: %s" % target	
-		try:
-				os.makedirs(target)
-		except OSError as err:
-				print "Error creating project folder: '%s'" % format(err)
-				print "Check permissions and try again"
-				sys.exit(2)
+    # Create target folder
+    print "Creating project target folder: %s" % target
+    try:
+        os.makedirs(target)
+    except OSError as err:
+        print "Error creating project folder: '%s'" % format(err)
+        print "Check permissions and try again"
+        sys.exit(2)
 
-		# Create folder structure
-		os.mkdir(os.path.join(target, "config"))
+    # Create folder structure
+    os.mkdir(os.path.join(target, "config"))
 
-		# Copy default config
-		shutil.copyfile(os.path.join(sdk_config_folder(), "services.yaml"),
-										os.path.join(target, "config", "services.yaml"))
+    # Copy default config
+    shutil.copyfile(os.path.join(sdk_config_folder(), "services.yaml"),
+                    os.path.join(target, "config", "services.yaml"))
 
-		# Create project marker
-		open(os.path.join(target, ".hereos_project"), 'a').close()
+    # Create project marker
+    open(os.path.join(target, ".hereos_project"), 'a').close()
 
 def project_services_path():
-		"""Returns the location of the services path for the current project
-			 Raises a NotAProjectFolder error if not in a project folder
-		"""
-		return os.path.join(find_project_path(), "services")
+    """Returns the location of the services path for the current project
+       Raises a NotAProjectFolder error if not in a project folder
+    """
+    return os.path.join(find_project_path(), "services")
 
 def create_service(service_name):
-		"""Creates a new microservice from the microservice template"""
+    """Creates a new microservice from the microservice template"""
 
-		# Create the top-level project services folder unless it exists
-		try:
-				if not os.path.exists(project_services_path()):
-						os.makedirs(project_services_path())
-		except NotAProjectFolder:
-				print "Unable to create a new service - not in a HereOS project folder"
-				sys.exit(2)
-		service_path = os.path.join(project_services_path(), service_name)
+    # Create the top-level project services folder unless it exists
+    try:
+        if not os.path.exists(project_services_path()):
+            os.makedirs(project_services_path())
+    except NotAProjectFolder:
+        print "Unable to create a new service - not in a HereOS project folder"
+        sys.exit(2)
+    service_path = os.path.join(project_services_path(), service_name)
 
-		# Copy the template project to the new service folder
-		print "Creating new HereOS template service at: %s" % service_path
-		shutil.copytree(os.path.join(sdk_folder(), "service_template"), service_path)
+    # Copy the template project to the new service folder
+    print "Creating new HereOS template service at: %s" % service_path
+    shutil.copytree(os.path.join(sdk_folder(), "service_template"), service_path)
 
-		# Register the service with the current project and enable it
-		add_service_to_project(service_name, "Template microservice", "0.0.1")
-		enable_service(service_name)
+    # Register the service with the current project and enable it
+    add_service_to_project(service_name, "Template microservice", "0.0.1")
+    enable_service(service_name)
 
 def main():
-		"""Main entry point for CLI"""
-		if len(sys.argv) == 1:
-				usage()
-				sys.exit()
+    """Main entry point for CLI"""
+    if len(sys.argv) == 1:
+        usage()
+        sys.exit()
 
-		# Process option arguments
-		try:
-				opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "version"])
-		except getopt.GetoptError as err:
-				# print help information and exit:
-				print str(err)
-				usage()
-				sys.exit(2)
-		for o, a in opts:
-				if o in ("-v", "--version"):
-						version()
-						sys.exit()
-	 			elif o in ("-h", "--help"):
-						usage()
-						sys.exit()
-				else:
-						assert False, "unhandled option"
+    # Process option arguments
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "version"])
+    except getopt.GetoptError as err:
+        # print help information and exit:
+        print str(err)
+        usage()
+        sys.exit(2)
+    for opt, args in opts:
+        if opt in ("-v", "--version"):
+            version()
+            sys.exit()
+        elif opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        else:
+            assert False, "unhandled option: %s, %s" % (opt, args)
 
-		# Switch on main command
-		try:
-				{
-						'create-service':	 lambda x:  create_service(*x),
-						'disable-service': lambda x:  disable_service(*x),
-						'enable-service':  lambda x:  enable_service(*x),
-						'init': 				 	 lambda x:  init_sdk_project(*x),
-						'list-services': 	 lambda x : list_services()
-				}[args[0]](args[1:])
-		except KeyError as err:
-				print "Unknown command: '%s' (%s)\n" % (args[0], err)
-				traceback.print_exception(*sys.exc_info())
-				usage()
-				sys.exit(2)
+    # Switch on main command
+    try:
+        {
+            'create-service':  lambda x: create_service(*x),
+            'disable-service': lambda x: disable_service(*x),
+            'enable-service':  lambda x: enable_service(*x),
+            'init':            lambda x: init_sdk_project(*x),
+            'list-services':   lambda x: list_services()
+        }[args[0]](args[1:])
+    except KeyError as err:
+        print "Unknown command: '%s' (%s)\n" % (args[0], err)
+        traceback.print_exception(*sys.exc_info())
+        usage()
+        sys.exit(2)
 
 if __name__ == "__main__":
-		main()
+    main()
 
-# vim: tabstop=4 shiftwidth=4 noexpandtab
-
+# vim: tabstop=4 shiftwidth=4 expandtab
