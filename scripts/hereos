@@ -14,7 +14,8 @@ import shlex
 import traceback
 import yaml
 
-class tcolors:
+class TColors:
+    """Terminal color constant strings"""
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -164,37 +165,41 @@ def init_yocto_project(path):
     try:
         if not os.path.exists(path):
             os.makedirs(path)
-        
+
         print "Checking out 'updater' yocto project to %s" % path
-        print tcolors.OKBLUE
-        process = subprocess.Popen(["repo", "init", "-u", "https://github.com/advancedtelematic/updater-repo.git"], cwd=path, shell=False) 
+        print TColors.OKBLUE
+        process = subprocess.Popen(["repo", "init", "-u",
+                                    "https://github.com/advancedtelematic/updater-repo.git"],
+                                   cwd=path, shell=False)
         process.wait()
-        print tcolors.ENDC
+        print TColors.ENDC
         if process.returncode != 0:
             print "Error cloning repo project. Check internet connection"
-            sys.exit(res)
+            sys.exit(process.returncode)
 
         print "Syncing repo..."
-        print tcolors.OKBLUE
+        print TColors.OKBLUE
         process = subprocess.Popen(["repo", "sync"], cwd=path, shell=False)
         process.wait()
-        print tcolors.ENDC
-        if process.returncode != 0:  
+        print TColors.ENDC
+        if process.returncode != 0:
             print "Error syncing repo. Check internet connection"
-            sys.exit(res)
+            sys.exit(process.returncode)
 
         print "Extracting yocto environment"
-        command = shlex.split("env -i bash -c 'source meta-updater/scripts/envsetup.sh qemux86-64 >/dev/null 2>&1 && env'")
-        process = subprocess.Popen(command, cwd = path, stdout = subprocess.PIPE)
+        command = shlex.split(("env -i bash -c "
+                               "'source meta-updater/scripts/envsetup.sh "
+                               "qemux86-64 >/dev/null 2>&1 && env'"))
+        process = subprocess.Popen(command, cwd=path, stdout=subprocess.PIPE)
         env = {}
         for line in process.stdout:
             (key, _, value) = line.partition("=")
             env[key] = value.strip()
         process.communicate()
-        write_project_yocto_env(env, cwd = path)
+        write_project_yocto_env(env, cwd=path)
 
     finally:
-        print tcolors.ENDC
+        print TColors.ENDC
 
 def init_sdk_project(path):
     """Creates a new SDK project in the current working directory"""
@@ -254,7 +259,9 @@ def build_image():
     yocto_env.update(load_project_yocto_env())
 
     print "Bitbaking in: %s" % os.path.join(project_yocto_path(), "build")
-    process = subprocess.Popen(["bitbake", "core-image-minimal"], cwd = os.path.join(project_yocto_path(), "build"), env = yocto_env)
+    process = subprocess.Popen(["bitbake", "core-image-minimal"],
+                               cwd=os.path.join(project_yocto_path(), "build"),
+                               env=yocto_env)
     process.wait()
     if process.returncode != 0:
         print "Error running Yocto build: %s" % process.returncode
