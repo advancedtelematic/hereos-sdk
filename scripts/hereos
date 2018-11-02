@@ -9,8 +9,20 @@ import sys
 import io
 import os
 import shutil
+import subprocess
+import shlex
 import traceback
 import yaml
+
+class tcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def usage():
     """Print usage information"""
@@ -32,6 +44,24 @@ class NotAProjectFolder(Exception):
 def version():
     """Print the version string"""
     print "HereOS Version: 0.0.1\n"
+
+def project_yocto_env_path():
+    """Return the path for the project-specific yocto env file"""
+    project_path = find_project_path()
+    return os.path.join(project_path, "config", "yocto-env.yaml")
+
+def write_project_yocto_env(env, cwd=None):
+    """Write the yocto env to disk"""
+    old_cwd = None
+    if cwd != None:
+        old_cwd = os.getcwd()
+        os.chdir(cwd)
+    try:
+        with io.open(project_yocto_env_path(), "w") as yaml_file:
+            yaml_file.write(unicode(yaml.dump(env, default_flow_style=False)))
+    finally:
+        if old_cwd != None:
+            os.chdir(old_cwd)
 
 def project_services_config_path():
     """Return the path for the project-specific config file"""
@@ -120,6 +150,43 @@ def find_project_path():
             path = os.path.realpath(os.path.join(path, ".."))
     raise NotAProjectFolder
 
+def init_yocto_project(path):
+    """Initializes a default Yocto project in the current folder"""
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        print "Checking out 'updater' yocto project to %s" % path
+        print tcolors.OKBLUE
+        process = subprocess.Popen(["repo", "init", "-u", "https://github.com/advancedtelematic/updater-repo.git"], cwd=path, shell=False) 
+        process.wait()
+        print tcolors.ENDC
+        if process.returncode != 0:
+            print "Error cloning repo project. Check internet connection"
+            sys.exit(res)
+
+        print "Syncing repo..."
+        print tcolors.OKBLUE
+        process = subprocess.Popen(["repo", "sync"], cwd=path, shell=False)
+        process.wait()
+        print tcolors.ENDC
+        if process.returncode != 0:  
+            print "Error syncing repo. Check internet connection"
+            sys.exit(res)
+
+        print "Extracting yocto environment"
+        command = shlex.split("env -i bash -c 'source meta-updater/scripts/envsetup.sh qemux86-64 >/dev/null 2>&1 && env'")
+        process = subprocess.Popen(command, cwd = path, stdout = subprocess.PIPE)
+        env = {}
+        for line in process.stdout:
+            (key, _, value) = line.partition("=")
+            env[key] = value.strip()
+        process.communicate()
+        write_project_yocto_env(env, cwd = path)
+
+    finally:
+        print tcolors.ENDC
+
 def init_sdk_project(path):
     """Creates a new SDK project in the current working directory"""
     print "SDK folder: %s" % sdk_folder()
@@ -143,6 +210,8 @@ def init_sdk_project(path):
 
     # Create project marker
     open(os.path.join(target, ".hereos_project"), 'a').close()
+
+    init_yocto_project(os.path.join(target, "yocto"))
 
 def project_services_path():
     """Returns the location of the services path for the current project
