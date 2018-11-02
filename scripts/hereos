@@ -45,6 +45,11 @@ def version():
     """Print the version string"""
     print "HereOS Version: 0.0.1\n"
 
+def project_yocto_path():
+    """Return the path for the yocto build environment"""
+    project_path = find_project_path()
+    return os.path.join(project_path, "yocto")
+
 def project_yocto_env_path():
     """Return the path for the project-specific yocto env file"""
     project_path = find_project_path()
@@ -62,6 +67,10 @@ def write_project_yocto_env(env, cwd=None):
     finally:
         if old_cwd != None:
             os.chdir(old_cwd)
+
+def load_project_yocto_env():
+    """Loads the yocto environment for the current project"""
+    return yaml.load(io.open(project_yocto_env_path(), "r"))
 
 def project_services_config_path():
     """Return the path for the project-specific config file"""
@@ -239,6 +248,17 @@ def create_service(service_name):
     add_service_to_project(service_name, "Template microservice", "0.0.1")
     enable_service(service_name)
 
+def build_image():
+    """Kicks off a bitbake build"""
+    yocto_env = os.environ.copy()
+    yocto_env.update(load_project_yocto_env())
+
+    print "Bitbaking in: %s" % os.path.join(project_yocto_path(), "build")
+    process = subprocess.Popen(["bitbake", "core-image-minimal"], cwd = os.path.join(project_yocto_path(), "build"), env = yocto_env)
+    process.wait()
+    if process.returncode != 0:
+        print "Error running Yocto build: %s" % process.returncode
+
 def main():
     """Main entry point for CLI"""
     if len(sys.argv) == 1:
@@ -270,6 +290,7 @@ def main():
             'disable-service': lambda x: disable_service(*x),
             'enable-service':  lambda x: enable_service(*x),
             'init':            lambda x: init_sdk_project(*x),
+            'build':           lambda x: build_image(*x),
             'list-services':   lambda x: list_services()
         }[args[0]](args[1:])
     except KeyError as err:
