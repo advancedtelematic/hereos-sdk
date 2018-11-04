@@ -36,6 +36,7 @@ def usage():
     print "\tcreate-service <service_name>\tCreates a new microservice and adds it to the build"
     print "\tdisable-service <service_name>\tRemoves microservice from the current project's build"
     print "\tbuild\tBuilds a device image"
+    print "\trunqemu\tLaunches a local instance of QEMU running the built image"
     print "\tdeploy\tDeploys the built image to the current device (if OTA is enabled)"
     print ""
 
@@ -263,12 +264,32 @@ def merge_paths(orig, priority):
             new_elements.append(element)
     return new_elements.extend(orig_elements)
 
-def build_image():
-    """Kicks off a bitbake build"""
+def get_yocto_environment():
+    """Fetches yocto environment and returns it as a dictionary"""
     yocto_env = os.environ.copy()
     yocto_env["PATH"] = merge_paths(os.environ["PATH"], yocto_env["PATH"])
     yocto_env.update(load_project_yocto_env())
+    return yocto_env
 
+def runqemu():
+    """Runs a build qemu image"""
+    yocto_env = get_yocto_environment()
+    print "Running QEMU Image - login with username 'root'"
+    try:
+        print TColors.OKBLUE
+        process = subprocess.Popen(["runqemu", "qemux86"],
+                                   cwd=os.path.join(project_yocto_path(), "build"),
+                                   env=yocto_env)
+        process.wait()
+        if process.returncode != 0:
+            print "Error launching qemu: %s" % process.returncode
+
+    finally:
+        print TColors.ENDC
+
+def build_image():
+    """Kicks off a bitbake build"""
+    yocto_env = get_yocto_environment()
     print "Bitbaking in: %s" % os.path.join(project_yocto_path(), "build")
     process = subprocess.Popen(["bitbake", "core-image-minimal"],
                                cwd=os.path.join(project_yocto_path(), "build"),
@@ -309,7 +330,8 @@ def main():
             'enable-service':  lambda x: enable_service(*x),
             'init':            lambda x: init_sdk_project(*x),
             'build':           lambda x: build_image(*x),
-            'list-services':   lambda x: list_services()
+            'list-services':   lambda x: list_services(),
+            'runqemu':         lambda x: runqemu()
         }[args[0]](args[1:])
     except KeyError as err:
         print "Unknown command: '%s' (%s)\n" % (args[0], err)
