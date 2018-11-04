@@ -253,9 +253,20 @@ def create_service(service_name):
     add_service_to_project(service_name, "Template microservice", "0.0.1")
     enable_service(service_name)
 
+def merge_paths(orig, priority):
+    """Merges the contents of two paths variables"""
+    orig_elements = orig.split(":")
+    priority_elements = priority.split(":")
+    new_elements = []
+    for element in priority_elements:
+        if element not in orig_elements:
+            new_elements.append(element)
+    return new_elements.extend(orig_elements)
+
 def build_image():
     """Kicks off a bitbake build"""
     yocto_env = os.environ.copy()
+    yocto_env["PATH"] = merge_paths(os.environ["PATH"], yocto_env["PATH"])
     yocto_env.update(load_project_yocto_env())
 
     print "Bitbaking in: %s" % os.path.join(project_yocto_path(), "build")
