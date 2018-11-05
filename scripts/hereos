@@ -47,6 +47,11 @@ def version():
     """Print the version string"""
     print "HereOS Version: 0.0.1\n"
 
+def project_yocto_local_conf_path():
+    """Return the path for the yocto local.conf"""
+    return os.path.join(project_yocto_path(),
+                        "build", "conf", "local.conf")
+
 def project_yocto_path():
     """Return the path for the yocto build environment"""
     project_path = find_project_path()
@@ -134,12 +139,14 @@ def enable_service(service_name):
     config = load_service_config(service_name)
     config["enabled"] = True
     write_service_config(config)
+    update_image_append()
 
 def disable_service(service_name):
     """Enables a service for building in the current image"""
     config = load_service_config(service_name)
     config.pop("enabled", None)
     write_service_config(config)
+    update_image_append()
 
 def sdk_config_folder():
     """Returns the path to the SDK config folder"""
@@ -148,6 +155,10 @@ def sdk_config_folder():
 def sdk_folder():
     """Returns the path to the folder where the SDK is installed"""
     return os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+
+def project_layer_name():
+    """Returns the name of this project's meta-xx layer"""
+    return "meta-" + os.path.basename(find_project_path())
 
 def find_project_path():
     """Searches the directory tree upwards to find the project above CWD
@@ -160,6 +171,25 @@ def find_project_path():
         else:
             path = os.path.realpath(os.path.join(path, ".."))
     raise NotAProjectFolder
+
+def update_image_append():
+    """Rewrites the IMAGE_INSTALL_append line of local.conf to include active services"""
+    enabled_services = [s["name"] for s in load_project_config() if "enabled" in s]
+    conf_path = project_yocto_local_conf_path()
+    have_image_append = ("IMAGE_INSTALL_append" in open(conf_path).read())
+    if not have_image_append and enabled_services:
+        with(open(conf_path, "a")) as fhandle:
+            fhandle.write("IMAGE_INSTALL_append =\n")
+
+    # TODO: System is the devil. Don't depend on sed
+    if have_image_append and not enabled_services:
+        os.system("sed -i '/^IMAGE_INSTALL_append =.*/d' " + conf_path)
+
+    # TODO: System is the devil. Don't depend on sed
+    # TODO: Unprocessed user input
+    if enabled_services:
+        os.system("sed -i '/^IMAGE_INSTALL_append =.*/c\\IMAGE_INSTALL_append = \" " +
+                  " ".join(enabled_services) + "\"' " + conf_path)
 
 def init_yocto_project(path):
     """Initializes a default Yocto project in the current folder"""
@@ -199,6 +229,29 @@ def init_yocto_project(path):
         process.communicate()
         write_project_yocto_env(env, cwd=path)
 
+        oldpwd = os.getcwd()
+        try:
+            os.chdir(path)
+            print "Adding project-specific layer '%s' to yocto folder" % project_layer_name()
+            shutil.copytree(os.path.join(sdk_folder(), "yocto_template", "meta-layer_template"),
+                            os.path.join(project_yocto_path(), project_layer_name()))
+
+            print "Adding project-specific layer '%s' to bblayers.conf" % project_layer_name()
+            with open(os.path.join(project_yocto_path(),
+                                   "build", "conf", "bblayers.conf"), "a") as layers_conf:
+                layers_conf.write("BBLAYERS += \" ${METADIR}/" + project_layer_name() + " \"\n")
+
+            yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")
+            if os.path.exists(yocto_extra_path):
+                print "Copying extra yocto config from %s" % yocto_extra_path
+                with open(project_yocto_local_conf_path(), "a") as local_conf:
+                    with open(yocto_extra_path, "r") as yocto_extra:
+                        local_conf.writelines(yocto_extra.readlines())
+            else:
+                print "You can extra local.conf lines to SDK yocto config '%s'" % yocto_extra_path
+        finally:
+            os.chdir(oldpwd)
+
     finally:
         print TColors.ENDC
 
@@ -234,6 +287,19 @@ def project_services_path():
     """
     return os.path.join(find_project_path(), "services")
 
+def service_yocto_path(service_name):
+    """Returns the path to the yocto config files for a service"""
+    return os.path.join(project_yocto_path(), project_layer_name(), "recipes-example", service_name)
+
+def copy_with_substitution(src, dest, service_name):
+    """Copies a file from src to dest, replacing ##SERVICE_NAME with service_name"""
+    if not os.path.exists(os.path.dirname(dest)):
+        os.makedirs(os.path.dirname(dest))
+    # TODO: os.system is teh evil
+    # TODO: Unconstrained user input in regexp and service name
+    template_regexp = "s/##SERVICE_NAME/" + service_name + "/g"
+    os.system("cat " + src + " | sed -e '" + template_regexp + "' > " + dest)
+
 def create_service(service_name):
     """Creates a new microservice from the microservice template"""
 
@@ -248,7 +314,18 @@ def create_service(service_name):
 
     # Copy the template project to the new service folder
     print "Creating new HereOS template service at: %s" % service_path
-    shutil.copytree(os.path.join(sdk_folder(), "service_template"), service_path)
+    copy_with_substitution(os.path.join(sdk_folder(),
+                                        "service_template",
+                                        "CMakeLists.txt.template"),
+                           os.path.join(service_path, "CMakeLists.txt"),
+                           service_name)
+    shutil.copyfile(os.path.join(sdk_folder(), "service_template", "main.cpp"),
+                    os.path.join(service_path, "main.cpp"))
+
+    # Create the recipe in the Yocto project
+    copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
+                           os.path.join(service_yocto_path(service_name), service_name + ".bb"),
+                           service_name)
 
     # Register the service with the current project and enable it
     add_service_to_project(service_name, "Template microservice", "0.0.1")
@@ -301,6 +378,26 @@ def runqemu():
 
 def build_image():
     """Kicks off a bitbake build"""
+    print "Snapshotting services code"
+    for service in load_project_config():
+        # TODO: Unconstrained user input leads to exploitation / arbitrary write
+        service_source_folder = os.path.join(find_project_path(), "services", service["name"])
+        # TODO: Parse service version from BB file here
+        service_name_with_version = service["name"] + "-0.0.1"
+        service_archive_folder = os.path.join(service_yocto_path(service["name"]),
+                                              service_name_with_version)
+        if not os.path.exists(service_archive_folder):
+            os.makedirs(service_archive_folder)
+        if os.path.exists(service_source_folder):
+            print "\t%s..." % service["name"]
+            # TODO: Unconstrained user input leads to exploitation / arbitrary write
+            transform_exp = "s/^" + service["name"] + "/git/"
+            subprocess.call(["tar", "-C", os.path.join(find_project_path(), "services"),
+                             "--transform", transform_exp, "-zcf",
+                             os.path.join(service_archive_folder,
+                                          service_name_with_version + ".tar.gz"),
+                             service["name"]])
+
     yocto_env = get_yocto_environment()
     print "Bitbaking in: %s" % os.path.join(project_yocto_path(), "build")
     process = subprocess.Popen(["bitbake", "core-image-minimal"],
