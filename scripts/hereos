@@ -271,6 +271,18 @@ def get_yocto_environment():
     yocto_env.update(load_project_yocto_env())
     return yocto_env
 
+def bitbake(*args):
+    """Runs bitbake command in the current project using the supplied arguments"""
+    yocto_env = get_yocto_environment()
+    bitbake_args = ["bitbake"]
+    bitbake_args.extend(args)
+    process = subprocess.Popen(bitbake_args,
+                               cwd=os.path.join(project_yocto_path(), "build"),
+                               env=yocto_env)
+    process.wait()
+    if process.returncode != 0:
+        print "Error running bitbake: %s" % process.returncode
+
 def runqemu():
     """Runs a build qemu image"""
     yocto_env = get_yocto_environment()
@@ -331,6 +343,7 @@ def main():
             'init':            lambda x: init_sdk_project(*x),
             'build':           lambda x: build_image(*x),
             'list-services':   lambda x: list_services(),
+            'bitbake':         lambda x: bitbake(*x),
             'runqemu':         lambda x: runqemu()
         }[args[0]](args[1:])
     except KeyError as err:
@@ -342,4 +355,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# vim: tabstop=4 shiftwidth=4 expandtab
+# vim:set ts=4 sw=4 sts=4 expandtab:
