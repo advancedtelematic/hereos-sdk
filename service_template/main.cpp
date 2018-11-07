@@ -57,7 +57,12 @@ int main(int argc, char **argv)
   // (use of InsecureChannelCredentials()).
   EchoClient echo(grpc::CreateChannel(
       "localhost:50051", grpc::InsecureChannelCredentials()));
-  std::string message("Echo!!");
+  std::string message;
+  if (argc > 1) {
+    message = std::string(argv[1]);
+  } else {
+    message = std::string("Echo!!");
+  }
   std::string reply = echo.Shout(message);
   std::cout << "Echo Client received: " << reply << std::endl;
 
