@@ -200,7 +200,8 @@ def init_yocto_project(path):
         print "Checking out 'updater' yocto project to %s" % path
         print TColors.OKBLUE
         process = subprocess.Popen(["repo", "init", "-u",
-                                    "https://github.com/advancedtelematic/updater-repo.git"],
+                                    "https://github.com/advancedtelematic/updater-repo.git",
+                                    "-m", "thud.xml"],
                                    cwd=path, shell=False)
         process.wait()
         print TColors.ENDC
@@ -239,6 +240,8 @@ def init_yocto_project(path):
             print "Adding project-specific layer '%s' to bblayers.conf" % project_layer_name()
             with open(os.path.join(project_yocto_path(),
                                    "build", "conf", "bblayers.conf"), "a") as layers_conf:
+                layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-python\"\n")
+                layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-networking\"\n")
                 layers_conf.write("BBLAYERS += \" ${METADIR}/" + project_layer_name() + " \"\n")
 
             yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")

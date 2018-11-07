@@ -8,6 +8,8 @@ SRC_URI = "file://##SERVICE_NAME-${PV}.tar.gz"
 
 S = "${WORKDIR}/git"
 
+DEPENDS = "grpc"
+
 inherit pkgconfig cmake
 
 do_install() {
