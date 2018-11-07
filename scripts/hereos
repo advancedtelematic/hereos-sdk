@@ -324,6 +324,10 @@ def create_service(service_name):
                            service_name)
     shutil.copyfile(os.path.join(sdk_folder(), "service_template", "main.cpp"),
                     os.path.join(service_path, "main.cpp"))
+    shutil.copyfile(os.path.join(sdk_folder(), "service_template", "grpc.cmake.inc"),
+                    os.path.join(service_path, "grpc.cmake.inc"))
+    shutil.copytree(os.path.join(sdk_folder(), "service_template", "protos"),
+                    os.path.join(service_path, "protos"))
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
