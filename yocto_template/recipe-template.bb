@@ -1,5 +1,5 @@
 DESCRIPTION = "##SERVICE_NAME" 
-SECTION = "examples"
+SECTION = "hereos"
 LICENSE = "CLOSED"
 PV = "0.0.1"
 PR = "r0"

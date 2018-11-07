@@ -292,7 +292,7 @@ def project_services_path():
 
 def service_yocto_path(service_name):
     """Returns the path to the yocto config files for a service"""
-    return os.path.join(project_yocto_path(), project_layer_name(), "recipes-example", service_name)
+    return os.path.join(project_yocto_path(), project_layer_name(), "recipes-hereos", service_name)
 
 def copy_with_substitution(src, dest, service_name):
     """Copies a file from src to dest, replacing ##SERVICE_NAME with service_name"""
