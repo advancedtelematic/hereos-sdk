@@ -244,6 +244,12 @@ def init_yocto_project(path):
                 layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-networking\"\n")
                 layers_conf.write("BBLAYERS += \" ${METADIR}/" + project_layer_name() + " \"\n")
 
+
+            print "Patching meta-openembedded"
+            os.chdir(os.path.join(path, "meta-openembedded"))
+            os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "001-protobuf-use-cmake.diff"))
+            os.chdir(path)
+
             yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")
             if os.path.exists(yocto_extra_path):
                 print "Copying extra yocto config from %s" % yocto_extra_path
