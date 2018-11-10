@@ -1,0 +1,9 @@
+[Unit]
+Description=GRPC ##SERVICE_NAME Server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/##SERVICE_NAME
+
+[Install]
+WantedBy=multi-user.target

@@ -33,7 +33,10 @@ def usage():
     print "\tinit <path>\tInitializes a new HereOS project at the specified path"
     print "\tlist-services\tShows a list of available microsservices and their installation status"
     print "\tenable-service <service_name>\tAdds microservice to the current project's build"
-    print "\tcreate-service <service_name>\tCreates a new microservice and adds it to the build"
+    print ("\tcreate-server <service_name>\tCreates a new microservice from the server "
+           "template and adds it to the build")
+    print ("\tcreate-client <service_name>\tCreates a new microservice from the client "
+           "template and adds it to the build")
     print "\tdisable-service <service_name>\tRemoves microservice from the current project's build"
     print "\tbuild\tBuilds a device image"
     print "\trunqemu\tLaunches a local instance of QEMU running the built image"
@@ -128,10 +131,13 @@ def write_project_config(config):
     with io.open(project_services_config_path(), "w") as yaml_file:
         yaml_file.write(unicode(yaml.dump(config, default_flow_style=False)))
 
-def add_service_to_project(service_name, description, version_string):
+def add_service_to_project(service_name, description, version_string, is_service=False):
     """Adds a service to the current project config"""
     config = load_project_config()
-    config.append({"name": service_name, "description": description, "version": version_string})
+    config.append({"name": service_name,
+                   "description": description,
+                   "version": version_string,
+                   "is_service": is_service})
     write_project_config(config)
 
 def enable_service(service_name):
@@ -309,8 +315,8 @@ def copy_with_substitution(src, dest, service_name):
     template_regexp = "s/##SERVICE_NAME/" + service_name + "/g"
     os.system("cat " + src + " | sed -e '" + template_regexp + "' > " + dest)
 
-def create_service(service_name):
-    """Creates a new microservice from the microservice template"""
+def create_client(client_name):
+    """Creates a new microservice from the microservice client template"""
 
     # Create the top-level project services folder unless it exists
     try:
@@ -319,30 +325,74 @@ def create_service(service_name):
     except NotAProjectFolder:
         print "Unable to create a new service - not in a HereOS project folder"
         sys.exit(2)
-    service_path = os.path.join(project_services_path(), service_name)
+    service_path = os.path.join(project_services_path(), client_name)
 
     # Copy the template project to the new service folder
     print "Creating new HereOS template service at: %s" % service_path
-    copy_with_substitution(os.path.join(sdk_folder(),
-                                        "service_template",
-                                        "CMakeLists.txt.template"),
-                           os.path.join(service_path, "CMakeLists.txt"),
-                           service_name)
-    shutil.copyfile(os.path.join(sdk_folder(), "service_template", "main.cpp"),
-                    os.path.join(service_path, "main.cpp"))
-    shutil.copyfile(os.path.join(sdk_folder(), "service_template", "grpc.cmake.inc"),
-                    os.path.join(service_path, "grpc.cmake.inc"))
-    shutil.copytree(os.path.join(sdk_folder(), "service_template", "protos"),
-                    os.path.join(service_path, "protos"))
+    client_template_path = os.path.join(sdk_folder(), "client_template")
+    copy_template_folder_with_substitutions(client_template_path, service_path, client_name)
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
-                           os.path.join(service_yocto_path(service_name), service_name + ".bb"),
-                           service_name)
+                           os.path.join(service_yocto_path(client_name), client_name + ".bb"),
+                           client_name)
 
     # Register the service with the current project and enable it
-    add_service_to_project(service_name, "Template microservice", "0.0.1")
-    enable_service(service_name)
+    add_service_to_project(client_name, "Template microservice", "0.0.1")
+    enable_service(client_name)
+
+def copy_template_folder_with_substitutions(src, dest, substitution):
+    """Copies a tree of files, including making appropriate substitutions"""
+    for filename in os.listdir(src):
+        if not os.path.isdir(os.path.join(src, filename)):
+            if filename.endswith(".template"):
+                copy_with_substitution(os.path.join(src, filename),
+                                       os.path.join(dest, filename[:-9]),
+                                       substitution)
+            else:
+                shutil.copyfile(os.path.join(src, filename),
+                                os.path.join(dest, filename))
+        else:
+            if not os.path.exists(os.path.join(dest, filename)):
+                os.makedirs(os.path.join(dest, filename))
+            copy_template_folder_with_substitutions(os.path.join(src, filename),
+                                                    os.path.join(dest, filename),
+                                                    substitution)
+
+def create_server(server_name):
+    """Creates a new microservice client from the microservice server template"""
+
+    # Create the top-level project services folder unless it exists
+    try:
+        if not os.path.exists(project_services_path()):
+            os.makedirs(project_services_path())
+    except NotAProjectFolder:
+        print "Unable to create a new service - not in a HereOS project folder"
+        sys.exit(2)
+    service_path = os.path.join(project_services_path(), server_name)
+
+    # Copy the template project to the new service folder
+    print "Creating new HereOS template service at: %s" % service_path
+    server_template_path = os.path.join(sdk_folder(), "server_template")
+    copy_template_folder_with_substitutions(server_template_path, service_path, server_name)
+
+    # Create the recipe in the Yocto project
+    copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
+                           os.path.join(service_yocto_path(server_name), server_name + ".bb"),
+                           server_name)
+    copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "server-systemd.bb"),
+                           os.path.join(service_yocto_path(server_name), server_name + "-systemd.bb"),
+                           server_name)
+    files_path = os.path.join(service_yocto_path(server_name), "files")
+    if not os.path.exists(files_path):
+        os.makedirs(files_path)
+    copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "files", "server.service"),
+                           os.path.join(files_path, server_name + ".service"),
+                           server_name)
+
+    # Register the service with the current project and enable it
+    add_service_to_project(server_name, "Template microservice", "0.0.1", is_service=True)
+    enable_service(server_name)
 
 def merge_paths(orig, priority):
     """Merges the contents of two paths variables"""
@@ -447,7 +497,8 @@ def main():
     # Switch on main command
     try:
         {
-            'create-service':  lambda x: create_service(*x),
+            'create-server':   lambda x: create_server(*x),
+            'create-client':   lambda x: create_client(*x),
             'disable-service': lambda x: disable_service(*x),
             'enable-service':  lambda x: enable_service(*x),
             'init':            lambda x: init_sdk_project(*x),
