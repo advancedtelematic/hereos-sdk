@@ -269,6 +269,8 @@ def init_yocto_project(path):
             print "Patching meta-openembedded"
             os.chdir(os.path.join(path, "meta-openembedded"))
             os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "001-protobuf-use-cmake.diff"))
+            os.chdir(os.path.join(path, "meta-updater"))
+            os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "002-meta-updater-qemu-gui.diff"))
             os.chdir(path)
 
             yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")
@@ -456,7 +458,7 @@ def runqemu():
         process = subprocess.Popen([os.path.join("..", "meta-updater", "scripts", "run-qemu-ota"),
                                    "--dir", get_yocto_image_dir(),
                                    "--overlay", os.path.join(get_yocto_image_dir(), project_name() + "-overlay.cow"),
-                                   "--machine", "qemux86-64"],
+                                   "--machine", "qemux86-64", "--no-gui"],
                                    cwd=os.path.join(project_yocto_path(), "build"),
                                    env=yocto_env)
         process.wait()

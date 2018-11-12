@@ -1,0 +1,13 @@
+diff --git a/scripts/qemucommand.py b/scripts/qemucommand.py
+index 4abfd4e..be2055e 100644
+--- a/scripts/qemucommand.py
++++ b/scripts/qemucommand.py
+@@ -113,7 +113,7 @@ class QemuCommand(object):
+         if self.gui:
+             cmdline += ["-serial", "stdio"]
+         else:
+-            cmdline.append('-nographic')
++            cmdline += ['-nographic', "-serial", "mon:stdio"]
+         if self.kvm:
+             cmdline += ['-enable-kvm', '-cpu', 'host']
+         else:
