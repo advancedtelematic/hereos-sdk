@@ -131,13 +131,13 @@ def write_project_config(config):
     with io.open(project_services_config_path(), "w") as yaml_file:
         yaml_file.write(unicode(yaml.dump(config, default_flow_style=False)))
 
-def add_service_to_project(service_name, description, version_string, is_service=False):
+def add_service_to_project(service_name, description, version_string, is_server=False):
     """Adds a service to the current project config"""
     config = load_project_config()
     config.append({"name": service_name,
                    "description": description,
                    "version": version_string,
-                   "is_service": is_service})
+                   "is_server": is_server})
     write_project_config(config)
 
 def enable_service(service_name):
@@ -162,9 +162,13 @@ def sdk_folder():
     """Returns the path to the folder where the SDK is installed"""
     return os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 
+def project_name():
+    """Returns the name of this project"""
+    return os.path.basename(find_project_path())
+
 def project_layer_name():
     """Returns the name of this project's meta-xx layer"""
-    return "meta-" + os.path.basename(find_project_path())
+    return "meta-" + project_name()
 
 def find_project_path():
     """Searches the directory tree upwards to find the project above CWD
@@ -178,9 +182,20 @@ def find_project_path():
             path = os.path.realpath(os.path.join(path, ".."))
     raise NotAProjectFolder
 
+def recipe_name(s):
+    """Return the recipe name for a service config"""
+    if ("is_server" in s) and s["is_server"]:
+        return (s["name"] + "-systemd")
+    else:
+        return s["name"]
+
+def recipes_for_enabled_services():
+    """Return the list of recipes for all enabled services"""
+    return [recipe_name(s) for s in load_project_config() if "enabled" in s]
+
 def update_image_append():
     """Rewrites the IMAGE_INSTALL_append line of local.conf to include active services"""
-    enabled_services = [s["name"] for s in load_project_config() if "enabled" in s]
+    enabled_services = recipes_for_enabled_services()
     conf_path = project_yocto_local_conf_path()
     have_image_append = ("IMAGE_INSTALL_append" in open(conf_path).read())
     if not have_image_append and enabled_services:
@@ -391,7 +406,7 @@ def create_server(server_name):
                            server_name)
 
     # Register the service with the current project and enable it
-    add_service_to_project(server_name, "Template microservice", "0.0.1", is_service=True)
+    add_service_to_project(server_name, "Template microservice", "0.0.1", is_server=True)
     enable_service(server_name)
 
 def merge_paths(orig, priority):
@@ -423,13 +438,25 @@ def bitbake(*args):
     if process.returncode != 0:
         print "Error running bitbake: %s" % process.returncode
 
+def get_yocto_image_dir():
+    """Return the folder where the images are"""
+    with open(os.path.join(project_yocto_path(), "build", "conf", "local.conf"), "r") as local_conf:
+        for line in local_conf:
+            if line.startswith("TMPDIR"):
+                tmpdir = line.split("=")[1].strip()
+                return os.path.join(tmpdir.replace('"', ''), "deploy", "images")
+    return os.path.join(project_yocto_path(), "tmp", "deploy", "images")
+
 def runqemu():
     """Runs a build qemu image"""
     yocto_env = get_yocto_environment()
     print "Running QEMU Image - login with username 'root'"
     try:
         print TColors.OKBLUE
-        process = subprocess.Popen(["runqemu", "qemux86"],
+        process = subprocess.Popen([os.path.join("..", "meta-updater", "scripts", "run-qemu-ota"),
+                                   "--dir", get_yocto_image_dir(),
+                                   "--overlay", os.path.join(get_yocto_image_dir(), project_name() + "-overlay.cow"),
+                                   "--machine", "qemux86-64"],
                                    cwd=os.path.join(project_yocto_path(), "build"),
                                    env=yocto_env)
         process.wait()
