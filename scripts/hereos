@@ -215,20 +215,24 @@ def update_image_append():
 def init_yocto_project(path):
     """Initializes a default Yocto project in the current folder"""
     try:
+        yocto_cache_path = os.path.normpath(os.path.join(path, "..", "..", ".yocto_cache"))
+        print "Checking for cached yocto checkout at %s" % yocto_cache_path
+        if os.path.exists(yocto_cache_path) and not os.path.exists(path):
+            print "Copying cached yocto project..."
+            shutil.copytree(yocto_cache_path, path, symlinks=True)
         if not os.path.exists(path):
             os.makedirs(path)
-
-        print "Checking out 'updater' yocto project to %s" % path
-        print TColors.OKBLUE
-        process = subprocess.Popen(["repo", "init", "-u",
-                                    "https://github.com/advancedtelematic/updater-repo.git",
-                                    "-m", "thud.xml"],
-                                   cwd=path, shell=False)
-        process.wait()
-        print TColors.ENDC
-        if process.returncode != 0:
-            print "Error cloning repo project. Check internet connection"
-            sys.exit(process.returncode)
+            print "Checking out 'updater' yocto project to %s" % path
+            print TColors.OKBLUE
+            process = subprocess.Popen(["repo", "init", "-u",
+                                        "https://github.com/advancedtelematic/updater-repo.git",
+                                        "-m", "thud.xml"],
+                                        cwd=path, shell=False)
+            process.wait()
+            print TColors.ENDC
+            if process.returncode != 0:
+                print "Error cloning repo project. Check internet connection"
+                sys.exit(process.returncode)
 
         print "Syncing repo..."
         print TColors.OKBLUE
@@ -251,36 +255,37 @@ def init_yocto_project(path):
         process.communicate()
         write_project_yocto_env(env, cwd=path)
 
-        oldpwd = os.getcwd()
         try:
+            oldpwd = os.getcwd()
             os.chdir(path)
-            print "Adding project-specific layer '%s' to yocto folder" % project_layer_name()
-            shutil.copytree(os.path.join(sdk_folder(), "yocto_template", "meta-layer_template"),
-                            os.path.join(project_yocto_path(), project_layer_name()))
+            if not os.path.exists(os.path.join(project_yocto_path(), project_layer_name())):
+                print "Adding project-specific layer '%s' to yocto folder" % project_layer_name()
+                shutil.copytree(os.path.join(sdk_folder(), "yocto_template", "meta-layer_template"),
+                                os.path.join(project_yocto_path(), project_layer_name()))
 
-            print "Adding project-specific layer '%s' to bblayers.conf" % project_layer_name()
-            with open(os.path.join(project_yocto_path(),
-                                   "build", "conf", "bblayers.conf"), "a") as layers_conf:
-                layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-python\"\n")
-                layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-networking\"\n")
-                layers_conf.write("BBLAYERS += \" ${METADIR}/" + project_layer_name() + " \"\n")
+                print "Adding project-specific layer '%s' to bblayers.conf" % project_layer_name()
+                with open(os.path.join(project_yocto_path(),
+                                       "build", "conf", "bblayers.conf"), "a") as layers_conf:
+                    layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-python\"\n")
+                    layers_conf.write("BBLAYERS += \" ${METADIR}/meta-openembedded/meta-networking\"\n")
+                    layers_conf.write("BBLAYERS += \" ${METADIR}/" + project_layer_name() + " \"\n")
 
 
-            print "Patching meta-openembedded"
-            os.chdir(os.path.join(path, "meta-openembedded"))
-            os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "001-protobuf-use-cmake.diff"))
-            os.chdir(os.path.join(path, "meta-updater"))
-            os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "002-meta-updater-qemu-gui.diff"))
-            os.chdir(path)
+                print "Patching meta-openembedded"
+                os.chdir(os.path.join(path, "meta-openembedded"))
+                os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "001-protobuf-use-cmake.diff"))
+                os.chdir(os.path.join(path, "meta-updater"))
+                os.system("patch -p1 < " + os.path.join(sdk_folder(), "patches", "002-meta-updater-qemu-gui.diff"))
+                os.chdir(path)
 
-            yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")
-            if os.path.exists(yocto_extra_path):
-                print "Copying extra yocto config from %s" % yocto_extra_path
-                with open(project_yocto_local_conf_path(), "a") as local_conf:
-                    with open(yocto_extra_path, "r") as yocto_extra:
-                        local_conf.writelines(yocto_extra.readlines())
-            else:
-                print "You can extra local.conf lines to SDK yocto config '%s'" % yocto_extra_path
+                yocto_extra_path = os.path.join(sdk_config_folder(), "yocto-extra")
+                if os.path.exists(yocto_extra_path):
+                    print "Copying extra yocto config from %s" % yocto_extra_path
+                    with open(project_yocto_local_conf_path(), "a") as local_conf:
+                        with open(yocto_extra_path, "r") as yocto_extra:
+                            local_conf.writelines(yocto_extra.readlines())
+                else:
+                    print "You can extra local.conf lines to SDK yocto config '%s'" % yocto_extra_path
         finally:
             os.chdir(oldpwd)
 
@@ -292,24 +297,31 @@ def init_sdk_project(path):
     print "SDK folder: %s" % sdk_folder()
     target = path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
 
-    # Create target folder
-    print "Creating project target folder: %s" % target
-    try:
-        os.makedirs(target)
-    except OSError as err:
-        print "Error creating project folder: '%s'" % format(err)
-        print "Check permissions and try again"
-        sys.exit(2)
+    if os.path.exists(target):
+        if os.path.exists(os.path.join(target, ".hereos_project")):
+            print "Project folder '%s' already exists and is a hereos project - will only 'repo sync'" % target
+        else:
+            print "Project folder '%s' already exists and is not a hereos proejct folder - will not overwrite" % target
+            sys.exit(2)
+    else:
+        # Create target folder
+        print "Creating project target folder: %s" % target
+        try:
+            os.makedirs(target)
+        except OSError as err:
+            print "Error creating project folder: '%s'" % format(err)
+            print "Check permissions and try again"
+            sys.exit(2)
 
-    # Create folder structure
-    os.mkdir(os.path.join(target, "config"))
+        # Create folder structure
+        os.mkdir(os.path.join(target, "config"))
 
-    # Copy default config
-    shutil.copyfile(os.path.join(sdk_config_folder(), "services.yaml"),
-                    os.path.join(target, "config", "services.yaml"))
+        # Copy default config
+        shutil.copyfile(os.path.join(sdk_config_folder(), "services.yaml"),
+                        os.path.join(target, "config", "services.yaml"))
 
-    # Create project marker
-    open(os.path.join(target, ".hereos_project"), 'a').close()
+        # Create project marker
+        open(os.path.join(target, ".hereos_project"), 'a').close()
 
     init_yocto_project(os.path.join(target, "yocto"))
 
@@ -453,20 +465,15 @@ def runqemu():
     """Runs a build qemu image"""
     yocto_env = get_yocto_environment()
     print "Running QEMU Image - login with username 'root'"
-    try:
-        print TColors.OKBLUE
-        process = subprocess.Popen([os.path.join("..", "meta-updater", "scripts", "run-qemu-ota"),
-                                   "--dir", get_yocto_image_dir(),
-                                   "--overlay", os.path.join(get_yocto_image_dir(), project_name() + "-overlay.cow"),
-                                   "--machine", "qemux86-64", "--no-gui"],
-                                   cwd=os.path.join(project_yocto_path(), "build"),
-                                   env=yocto_env)
-        process.wait()
-        if process.returncode != 0:
-            print "Error launching qemu: %s" % process.returncode
-
-    finally:
-        print TColors.ENDC
+    process = subprocess.Popen([os.path.join("..", "meta-updater", "scripts", "run-qemu-ota"),
+                               "--dir", get_yocto_image_dir(),
+                               "--overlay", os.path.join(get_yocto_image_dir(), project_name() + "-overlay.cow"),
+                               "--machine", "qemux86-64", "--no-gui"],
+                               cwd=os.path.join(project_yocto_path(), "build"),
+                               env=yocto_env)
+    process.wait()
+    if process.returncode != 0:
+        print "Error launching qemu: %s" % process.returncode
 
 def build_image():
     """Kicks off a bitbake build"""
