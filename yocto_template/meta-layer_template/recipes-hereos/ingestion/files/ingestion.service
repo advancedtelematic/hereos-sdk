@@ -1,0 +1,9 @@
+[Unit]
+Description=GRPC ingestion Server
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ingestion -d -c /var/sota/config.yaml
+
+[Install]
+WantedBy=multi-user.target

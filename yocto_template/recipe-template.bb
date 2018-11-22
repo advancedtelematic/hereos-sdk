@@ -9,7 +9,7 @@ SRC_URI = "file://##SERVICE_NAME-${PV}.tar.gz"
 S = "${WORKDIR}/git"
 
 DEPENDS = "grpc grpc-native protobuf-native protobuf-c libnsl2"
-RDEPENDS_hello-world = "grpc libnsl2"
+RDEPENDS_##SERVICE_NAME = "grpc libnsl2"
 
 EXTRA_OECMAKE = "-DCMAKE_SKIP_RPATH=ON"
 
