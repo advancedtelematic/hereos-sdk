@@ -3,7 +3,7 @@ Description=GRPC ingestion Server
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ingestion -d -c /var/sota/config.yaml
+ExecStart=/usr/bin/ingestion -d -c /var/sota/config.yaml -z /var/sota/sota_provisioning_credentials.zip
 
 [Install]
 WantedBy=multi-user.target
