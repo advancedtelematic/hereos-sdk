@@ -4,7 +4,7 @@ LICENSE = "CLOSED"
 PV = "0.0.1"
 PR = "r0"
 
-SRCREV = "02e376e23c4e3041037199c7872db468d3dbd024"
+SRCREV = "846b87e7f96bc7ca77b023a3d7483057531f53cc"
 SRC_URI = "git://github.com/advancedtelematic/python-hereos-ingestion;protocol=git;branch=master"
 
 S = "${WORKDIR}/git"
