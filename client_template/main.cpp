@@ -1,6 +1,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <cstdlib>
+#include <unistd.h>
 
 #include <grpcpp/grpcpp.h>
 
@@ -51,20 +53,16 @@ class EchoClient {
 
 int main(int argc, char **argv)
 {
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint (in this case,
-  // localhost at port 50051). We indicate that the channel isn't authenticated
-  // (use of InsecureChannelCredentials()).
   EchoClient echo(grpc::CreateChannel(
       "localhost:50051", grpc::InsecureChannelCredentials()));
-  std::string message;
-  if (argc > 1) {
-    message = std::string(argv[1]);
-  } else {
-    message = std::string("Echo!!");
-  }
-  std::string reply = echo.Shout(message);
-  std::cout << "Echo Client received: " << reply << std::endl;
 
+  while (true) {
+    int measurement = rand() % 100;
+
+    std::string reply = echo.Shout(std::to_string(measurement));
+    std::cout << "Echo Client received: " << reply << std::endl;
+
+    usleep(1000000);
+  }
   return 0;
 }
