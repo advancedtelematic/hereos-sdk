@@ -2,3 +2,4 @@
 - name: ingestion
   version: 0.0.1
   description: Ingest data into OLP
+  is_server: true
