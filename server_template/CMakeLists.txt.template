@@ -4,7 +4,7 @@ project (##SERVICE_NAME)
 include (grpc.cmake.inc)
 
 # Proto file
-get_filename_component(echo_proto "protos/echo.proto" ABSOLUTE)
+get_filename_component(echo_proto "hereos/echo.proto" ABSOLUTE)
 get_filename_component(echo_proto_path "${echo_proto}" PATH)
 
 # Generated sources

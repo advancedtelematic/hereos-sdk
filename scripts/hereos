@@ -357,9 +357,13 @@ def create_client(client_name):
     service_path = os.path.join(project_services_path(), client_name)
 
     # Copy the template project to the new service folder
-    print "Creating new HereOS template service at: %s" % service_path
+    print "Creating new HereOS template client at: %s" % service_path
     client_template_path = os.path.join(sdk_folder(), "client_template")
     copy_template_folder_with_substitutions(client_template_path, service_path, client_name)
+
+    print "Copying common here-os includes"
+    hereos_common_path = os.path.join(sdk_folder(), "hereos-common")
+    shutil.copytree(hereos_common_path, os.path.join(service_path, "hereos"))
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
@@ -404,6 +408,10 @@ def create_server(server_name):
     print "Creating new HereOS template service at: %s" % service_path
     server_template_path = os.path.join(sdk_folder(), "server_template")
     copy_template_folder_with_substitutions(server_template_path, service_path, server_name)
+
+    print "Copying common here-os includes"
+    hereos_common_path = os.path.join(sdk_folder(), "hereos-common")
+    shutil.copytree(hereos_common_path, os.path.join(service_path, "hereos"))
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
