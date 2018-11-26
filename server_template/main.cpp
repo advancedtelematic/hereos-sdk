@@ -4,7 +4,7 @@
 
 #include <grpcpp/grpcpp.h>
 
-#include "hereos/echo.grpc.pb.h"
+#include "echo.grpc.pb.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
