@@ -9,6 +9,7 @@ cp -a `dirname $BASH_SOURCE`/../config ~/.hereos/
 cp -a `dirname $BASH_SOURCE`/../server_template ~/.hereos/
 cp -a `dirname $BASH_SOURCE`/../client_template ~/.hereos/
 cp -a `dirname $BASH_SOURCE`/../yocto_template ~/.hereos/
+cp -a `dirname $BASH_SOURCE`/../hereos-common ~/.hereos/
 cp -a `dirname $BASH_SOURCE`/../patches ~/.hereos/
 
 echo "HereOS SDK is installed"
