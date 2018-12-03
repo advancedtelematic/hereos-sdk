@@ -1,5 +1,18 @@
+diff --git a/recipes-sota/aktualizr/aktualizr_git.bb b/recipes-sota/aktualizr/aktualizr_git.bb
+index 50a9f16..e96880f 100755
+--- a/recipes-sota/aktualizr/aktualizr_git.bb
++++ b/recipes-sota/aktualizr/aktualizr_git.bb
+@@ -9,7 +9,7 @@ DEPENDS = "boost curl openssl libarchive libsodium asn1c-native sqlite3 "
+ DEPENDS_append_class-target = "ostree ${@bb.utils.contains('SOTA_CLIENT_FEATURES', 'hsm', ' libp11', '', d)} "
+ DEPENDS_append_class-native = "glib-2.0-native "
+ 
+-RDEPENDS_${PN}_class-target = "lshw "
++RDEPENDS_${PN}_class-target = "lshw python-protobuf python-grpcio python-requests python-pyyaml "
+ RDEPENDS_${PN}_append_class-target = "${@bb.utils.contains('SOTA_CLIENT_FEATURES', 'serialcan', ' slcand-start', '', d)} "
+ RDEPENDS_${PN}_append_class-target = " ${@bb.utils.contains('SOTA_CLIENT_FEATURES', 'ubootenv', ' u-boot-fw-utils aktualizr-uboot-env-rollback', '', d)} "
+ 
 diff --git a/scripts/qemucommand.py b/scripts/qemucommand.py
-index 4abfd4e..cddaaf1 100644
+index 4abfd4e..be2055e 100644
 --- a/scripts/qemucommand.py
 +++ b/scripts/qemucommand.py
 @@ -113,7 +113,7 @@ class QemuCommand(object):
@@ -11,12 +24,3 @@ index 4abfd4e..cddaaf1 100644
          if self.kvm:
              cmdline += ['-enable-kvm', '-cpu', 'host']
          else:
-@@ -127,6 +127,8 @@ class QemuCommand(object):
-             "qemu-img", "create",
-             "-o", "backing_file=%s" % self.image,
-             "-f", "qcow2",
--            self.overlay]
-+            self.overlay,
-+            "500M"
-+            ]
-         return cmdline
