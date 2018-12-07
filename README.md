@@ -2,8 +2,7 @@
 
 Welcome to the HereOS Embedded SDK. This tool allows you to build simple gRPC-enabled microservices and test them in an emulated Linux environment with OTA support.
 
-Prerequisites
----
+## Prerequisites
 
 The SDK is designed to run in Ubuntu Linux (tested on Ubuntu 18.04). You can find details of how to obtain Ubuntu here:
 
@@ -19,12 +18,11 @@ and the Python YAML library installed:
   pip install pyyaml
 ```
 
-Credentials
----
+## Credentials
 
 The HereOS Embedded SDK comes with support for Here's OTA Connect solution to support over-the-air updates, and Here's Open Location Platform for the ingestion of data.
 
-## OTA Connect Setup
+### OTA Connect Setup
 
 You can sign up for an OTA Connect account at
 
@@ -32,7 +30,7 @@ https://connect.ota.here.com
 
 Once logged in, you can create and download "Provisioning Credentials", which you can find in the 'Provisioning Keys' submenu of the profile menu in the top right. Create a new Provisioning Key, and download the `credentials.zip` file to your computer.
 
-## Open Location Platform Setup
+### Open Location Platform Setup
 
 You can sign up for an account for the Open Location Platform at
 
@@ -47,7 +45,7 @@ client_secret: <your_client_secret>
 
 Add this file to the `credentails.zip` archive that you downloaded from the OTA Connect Setup.
 
-## Yocto Setup
+### Yocto Setup
 
 To make the credentials available to Yocto, you will need to create a file `${USER_HOME}/.hereos/config/yocto-extra`, that includes information about where to find the `credentials.zip` file:
 
@@ -55,9 +53,7 @@ To make the credentials available to Yocto, you will need to create a file `${US
 SOTA_PACKED_CREDENTIALS = "/path/to/your/credentials.zip"
 ```
 
-
-Installing the SDK
----
+## Installing the SDK
 
 To install the SDK, run the command:
 
@@ -72,8 +68,7 @@ You will be prompted to run the command
 ```
 Which will register the command `hereos` in your environment and make the SDK available. You will need to do this in every new terminal (you can add this to your Bash Profile if you want this to happen automatically).
 
-Creating your first Project
----
+## Creating your first Project
 
 Type
 
@@ -89,8 +84,7 @@ cd my-first-project
 
 When you execute the `hereos` command from this folder, you will configuring, building and running this new project.
 
-Building your Project
----
+## Building your Project
 
 Type
 
@@ -100,8 +94,7 @@ hereos build
 
 from your project folder to kick off a build. Because this will build the whole SDK image (including the whole of Linux) from scratch, this may take up to 10 hours to complete. Subsequent builds will be faster because of the caching Yocto does.
 
-Running your Project
----
+## Running your Project
 
 Type
 
@@ -111,8 +104,7 @@ hereos runqemu
 
 to launch the emulator. This will run an instance of QEMU using the image you just built. If you have correctly configured your credentials, this QEMU emulator will automatically connect to OTA Connect, and you will be able to see your new device live at https://connect.ota.here.com
 
-Creating your first microservice
----
+## Creating your first microservice
 
 Type
 
