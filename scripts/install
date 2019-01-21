@@ -4,17 +4,17 @@ set -o errtrace
 
 shopt -s extglob
 
-cp -a `dirname $BASH_SOURCE` ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../config ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../server_template ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../client_template ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../yocto_template ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../hereos-common ~/.hereos/
-cp -a `dirname $BASH_SOURCE`/../patches ~/.hereos/
+cp -a `dirname $BASH_SOURCE` ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../config ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../server_template ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../client_template ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../yocto_template ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../ota-connect-common ~/.ota-connect/
+cp -a `dirname $BASH_SOURCE`/../patches ~/.ota-connect/
 
-echo "HereOS SDK is installed"
+echo "OTA Connect SDK is installed"
 echo "Run:"
 echo ""
-echo "  . ~/.hereos/scripts/register"
+echo "  . ~/.ota-connect/scripts/register"
 echo ""
 echo "To load the SDK into your environment"

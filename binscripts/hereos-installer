@@ -4,9 +4,9 @@ shopt -s extglob
 set -o errtrace
 set -o errexit
 
-hereos_install_initialize()
+ota_connect_install_initialize()
 {
-  DEFAULT_SOURCES=(prospero.talkingcode.co.uk github.com/codders/hereos)
+  DEFAULT_SOURCES=(prospero.talkingcode.co.uk github.com/advancedtelematic/ota-connect-sdk)
 
   BASH_MIN_VERSION="3.2.25"
   if
@@ -19,27 +19,27 @@ hereos_install_initialize()
   fi
 
   export HOME PS4
-  export hereos_trace_flag hereos_debug_flag hereos_user_install_flag hereos_ignore_hereosrc hereos_prefix hereos_path
+  export ota_connect_trace_flag ota_connect_debug_flag ota_connect_user_install_flag ota_connect_ignore_ota_connectrc ota_connect_prefix ota_connect_path
 
-  PS4="+ \${BASH_SOURCE##\${hereos_path:-}} : \${FUNCNAME[0]:+\${FUNCNAME[0]}()}  \${LINENO} > "
+  PS4="+ \${BASH_SOURCE##\${ota_connect_path:-}} : \${FUNCNAME[0]:+\${FUNCNAME[0]}()}  \${LINENO} > "
 }
 
 log()  { printf "%b\n" "$*"; }
-debug(){ [[ ${hereos_debug_flag:-0} -eq 0 ]] || printf "%b\n" "$*" >&2; }
+debug(){ [[ ${ota_connect_debug_flag:-0} -eq 0 ]] || printf "%b\n" "$*" >&2; }
 fail() { log "\nERROR: $*\n" >&2 ; exit 1 ; }
 
-hereos_install_commands_setup()
+ota_connect_install_commands_setup()
 {
   \which which >/dev/null 2>&1 || fail "Could not find 'which' command, make sure it's available first before continuing installation."
   \which grep >/dev/null 2>&1 || fail "Could not find 'grep' command, make sure it's available first before continuing installation."
   if
-    [[ -z "${hereos_tar_command:-}" ]] && builtin command -v gtar >/dev/null
+    [[ -z "${ota_connect_tar_command:-}" ]] && builtin command -v gtar >/dev/null
   then
-    hereos_tar_command=gtar
+    ota_connect_tar_command=gtar
   elif
-    ${hereos_tar_command:-tar} --help 2>&1 | GREP_OPTIONS="" \grep -- --strip-components >/dev/null
+    ${ota_connect_tar_command:-tar} --help 2>&1 | GREP_OPTIONS="" \grep -- --strip-components >/dev/null
   then
-    hereos_tar_command="${hereos_tar_command:-tar}"
+    ota_connect_tar_command="${ota_connect_tar_command:-tar}"
   else
     case "$(uname)" in
       (OpenBSD)
@@ -48,10 +48,10 @@ hereos_install_commands_setup()
         then sudo pkg_add -z gtar-1
         else pkg_add -z gtar-1
         fi
-        hereos_tar_command=gtar
+        ota_connect_tar_command=gtar
         ;;
       (Darwin|FreeBSD|DragonFly) # it's not possible to autodetect on OSX, the help/man does not mention all flags
-        hereos_tar_command=tar
+        ota_connect_tar_command=tar
         ;;
       (SunOS)
         case "$(uname -r)" in
@@ -65,27 +65,27 @@ hereos_install_commands_setup()
               then sudo_10=/opt/csw/bin/sudo
               else fail "sudo is required but not found. You may install sudo from OpenCSW repository (https://www.opencsw.org/about)"
               fi
-              pkginfo -q CSWpkgutil || $sudo_10 pkgadd -a $hereos_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
+              pkginfo -q CSWpkgutil || $sudo_10 pkgadd -a $ota_connect_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
               sudo /opt/csw/bin/pkgutil -iy CSWgtar -t https://mirror.opencsw.org/opencsw/unstable
             else
-              pkginfo -q CSWpkgutil || pkgadd -a $hereos_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
+              pkginfo -q CSWpkgutil || pkgadd -a $ota_connect_path/config/solaris/noask -d https://get.opencsw.org/now CSWpkgutil
               /opt/csw/bin/pkgutil -iy CSWgtar -t https://mirror.opencsw.org/opencsw/unstable
             fi
-            hereos_tar_command=/opt/csw/bin/gtar
+            ota_connect_tar_command=/opt/csw/bin/gtar
             ;;
           (*)
-            hereos_tar_command=tar
+            ota_connect_tar_command=tar
             ;;
         esac
     esac
-    builtin command -v ${hereos_tar_command:-gtar} >/dev/null ||
+    builtin command -v ${ota_connect_tar_command:-gtar} >/dev/null ||
     fail "Could not find GNU compatible version of 'tar' command, make sure it's available first before continuing installation."
   fi
   if
-    [[ " ${hereos_tar_options:-} " != *" --no-same-owner "*  ]] &&
-    $hereos_tar_command --help 2>&1 | GREP_OPTIONS="" \grep -- --no-same-owner >/dev/null
+    [[ " ${ota_connect_tar_options:-} " != *" --no-same-owner "*  ]] &&
+    $ota_connect_tar_command --help 2>&1 | GREP_OPTIONS="" \grep -- --no-same-owner >/dev/null
   then
-    hereos_tar_options="${hereos_tar_options:-}${hereos_tar_options:+ }--no-same-owner"
+    ota_connect_tar_options="${ota_connect_tar_options:-}${ota_connect_tar_options:+ }--no-same-owner"
   fi
 }
 
@@ -95,7 +95,7 @@ usage()
 
 Usage
 
-  hereos-installer [options] [action]
+  ota-connect-installer [options] [action]
 
 Options
 
@@ -111,50 +111,29 @@ Options
 
   [--]branch <branch>
 
-    The name of the branch from which HereOS is installed. This option can be used
+    The name of the branch from which OTA Connect is installed. This option can be used
     with the following formats for <branch>:
 
-      <account>/
-
-        If account is hereos or mpapis, installs from one of the following:
-
-          https://github.com/hereos/hereos/archive/master.tar.gz
-          https://bitbucket.org/mpapis/hereos/get/master.tar.gz
-
-       Otherwise, installs from:
-
-         https://github.com/<account>/hereos/archive/master.tar.gz
-
-      <account>/<branch>
-
-        If account is hereos or mpapis, installs from one of the following:
-
-          https://github.com/hereos/hereos/archive/<branch>.tar.gz
-          https://bitbucket.org/mpapis/hereos/get/<branch>.tar.gz
-
-        Otherwise, installs from:
-
-          https://github.com/<account>/hereos/archive/<branch>.tar.gz
+          https://github.com/<account>/ota-connect-sdk/archive/<branch>.tar.gz
 
       [/]<branch>
 
         Installs the branch from one of the following:
 
-          https://github.com/hereos/hereos/archive/<branch>.tar.gz
-          https://bitbucket.org/mpapis/hereos/get/<branch>.tar.gz
+          https://github.com/advancedtelematic/ota-connect-sdk/archive/<branch>.tar.gz
 
       [--]source <source>
 
-        Defines the repository from which HereOS is retrieved and installed in the format:
+        Defines the repository from which OTA Connect is retrieved and installed in the format:
 
           <domain>/<account>/<repo>
 
         Where:
 
           <domain>  - Is bitbucket.org, github.com or a github enterprise site serving
-                      an HereOS repository.
-          <account> - Is the user account in which the HereOS repository resides.
-          <repo>    - Is the name of the HereOS repository.
+                      an OTA Connect SDK repository.
+          <account> - Is the user account in which the OTA Connect SDK repository resides.
+          <repo>    - Is the name of the OTA Connect SDK repository.
 
         Note that when using the [--]source option, one should only use the [/]branch format
         with the [--]branch option. Failure to do so will result in undefined behavior.
@@ -164,20 +143,18 @@ Options
         Provides debug logging for the installation script.
 Actions
 
-  master - Installs HereOS from the master branch at hereos/hereos on github or mpapis/hereos
-           on bitbucket.org.
-  stable - Installs HereOS from the stable branch a hereos/hereos on github or mpapis/hereos
-           on bitbucket.org.
+  master - Installs OTA Connect SDK from the master branch at advancedtelematic/ota-connect-sdk on github
+  stable - Installs OTA Connect SDK from the stable branch a advancedtelematic/ota-connect-sdk on github
   help   - Displays this output.
 
 "
 }
 
 ## duplication marker 32fosjfjsznkjneuera48jae
-__hereos_curl_output_control()
+__ota_connect_curl_output_control()
 {
   if
-    (( ${hereos_quiet_curl_flag:-0} == 1 ))
+    (( ${ota_connect_quiet_curl_flag:-0} == 1 ))
   then
     __flags+=( "--silent" "--show-error" )
   elif
@@ -193,11 +170,11 @@ __hereos_curl_output_control()
 
 ## duplication marker 32fosjfjsznkjneuera48jae
 # -S is automatically added to -s
-__hereos_curl()
+__ota_connect_curl()
 (
-  __hereos_which curl >/dev/null ||
+  __ota_connect_which curl >/dev/null ||
   {
-    hereos_error "HereOS requires 'curl'. Install 'curl' first and try again."
+    ota_connect_error "OTA Connect SDK requires 'curl'. Install 'curl' first and try again."
     return 200
   }
 
@@ -208,35 +185,32 @@ __hereos_curl()
   [[ "$*" == *"--connect-timeout"* ]] ||
     __flags+=( --connect-timeout 30 --retry-delay 2 --retry 3 )
 
-  if [[ -n "${hereos_proxy:-}" ]]
-  then __flags+=( --proxy "${hereos_proxy:-}" )
+  if [[ -n "${ota_connect_proxy:-}" ]]
+  then __flags+=( --proxy "${ota_connect_proxy:-}" )
   fi
 
-  __hereos_curl_output_control
+  __ota_connect_curl_output_control
 
   unset curl
-  __hereos_debug_command \curl "${__flags[@]}" "$@" || return $?
+  __ota_connect_debug_command \curl "${__flags[@]}" "$@" || return $?
 )
 
-hereos_error()  { printf "ERROR: %b\n" "$*"; }
-__hereos_which(){   which "$@" || return $?; true; }
-__hereos_debug_command()
+ota_connect_error()  { printf "ERROR: %b\n" "$*"; }
+__ota_connect_which(){   which "$@" || return $?; true; }
+__ota_connect_debug_command()
 {
   debug "Running($#): $*"
   "$@" || return $?
   true
 }
-hereos_is_a_shell_function()
+ota_connect_is_a_shell_function()
 {
   [[ -t 0 && -t 1 ]] || return $?
-  return ${hereos_is_not_a_shell_function:-0}
+  return ${ota_connect_is_not_a_shell_function:-0}
 }
 
 # Searches the tags for the highest available version matching a given pattern.
-# fetch_version (github.com/hereos/hereos bitbucket.org/mpapis/hereos) 1.10. -> 1.10.3
-# fetch_version (github.com/hereos/hereos bitbucket.org/mpapis/hereos) 1.10. -> 1.10.3
-# fetch_version (github.com/hereos/hereos bitbucket.org/mpapis/hereos) 1.    -> 1.11.0
-# fetch_version (github.com/hereos/hereos bitbucket.org/mpapis/hereos) ""    -> 2.0.1
+# fetch_version (github.com/advancedtelematic/ota-connect-sdk) 1.10. -> 1.10.3
 fetch_version()
 {
   typeset _account _domain _pattern _repo _sources _values _version
@@ -266,9 +240,6 @@ fetch_versions()
   _account=$2
   _repo=$3
   case ${_domain} in
-    (bitbucket.org)
-      _url=https://${_domain}/api/1.0/repositories/${_account}/${_repo}/branches-tags
-      ;;
     (github.com)
       _url=https://api.${_domain}/repos/${_account}/${_repo}/tags
       ;;
@@ -277,7 +248,7 @@ fetch_versions()
       _url=https://${_domain}/api/v3/repos/${_account}/${_repo}/tags
       ;;
   esac
-  __hereos_curl -s ${_url} |
+  __ota_connect_curl -s ${_url} |
     \awk -v RS=',' -v FS='"' '$2=="name"{print $4}' |
     sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n -k 5,5n
 }
@@ -287,20 +258,16 @@ install_release()
   typeset _source _sources _url _version _verify_pgp
   _sources=(${!1})
   _version=$2
-  debug "Downloading HereOS version ${_version}"
+  debug "Downloading OTA Connect version ${_version}"
   for _source in "${_sources[@]}"
   do
     case ${_source} in
-      (bitbucket.org*)
-        _url="https://${_source}/get/${_version}.tar.gz"
-        _verify_pgp="https://${_source}/downloads/${_version}.tar.gz.asc"
-        ;;
       (*)
         _url="https://${_source}/archive/${_version}.tar.gz"
         _verify_pgp="https://${_source}/releases/download/${_version}/${_version}.tar.gz.asc"
         ;;
     esac
-    get_and_unpack "${_url}" "hereos-${_version}.tgz" "$_verify_pgp" && return
+    get_and_unpack "${_url}" "ota-connect-${_version}.tgz" "$_verify_pgp" && return
   done
   return $?
 }
@@ -310,13 +277,10 @@ install_head()
   typeset _branch _source _sources _url
   _sources=(${!1})
   _branch=$2
-  debug "Selected HereOS branch ${_branch}"
+  debug "Selected OTA Connect branch ${_branch}"
   for _source in "${_sources[@]}"
   do
     case ${_source} in
-      (bitbucket.org*)
-        _url=https://${_source}/get/${_branch}.tar.gz
-        ;;
       (prospero.talkingcode.co.uk*)
         _url=http://${_source}/archive/${_branch}.tar.gz
         ;;
@@ -324,14 +288,14 @@ install_head()
         _url=https://${_source}/archive/${_branch}.tar.gz
         ;;
     esac
-    get_and_unpack "${_url}" "hereos-${_branch//\//_}.tgz" && return
+    get_and_unpack "${_url}" "ota-connect-${_branch//\//_}.tgz" && return
   done
   return $?
 }
 
 # duplication marker dfkjdjngdfjngjcszncv
 # Drop in cd which _doesn't_ respect cdpath
-__hereos_cd()
+__ota_connect_cd()
 {
   typeset old_cdpath ret
   ret=0
@@ -348,23 +312,21 @@ get_package()
   _url="$1"
   _file="$2"
   log "Downloading ${_url}"
-  __hereos_curl -sS ${_url} > ${hereos_archives_path}/${_file} ||
+  __ota_connect_curl -sS ${_url} > ${ota_connect_archives_path}/${_file} ||
   {
     _return=$?
     case $_return in
       # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
       (60)
         log "
-Could not download '${_url}', you can read more about it here:
-https://hereos.io/support/fixing-broken-ssl-certificates/
+Could not download '${_url}'
 To continue in insecure mode run 'echo insecure >> ~/.curlrc'.
 "
         ;;
       # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
       (77)
         log "
-It looks like you have old certificates, you can read more about it here:
-https://hereos.io/support/fixing-broken-ssl-certificates/
+It looks like you have old certificates
 "
         ;;
       # duplication marker lfdgzkngdkjvnfjknkjvcnbjkncvjxbn
@@ -387,50 +349,33 @@ Could not download '${_url}'.
 }
 
 # duplication marker flnglfdjkngjndkfjhsbdjgfghdsgfklgg
-hereos_install_gpg_setup()
+ota_connect_install_gpg_setup()
 {
-  export hereos_gpg_command
+  export ota_connect_gpg_command
   {
-    hereos_gpg_command="$( \which gpg2 2>/dev/null )" &&
-    [[ ${hereos_gpg_command} != "/cygdrive/"* ]]
+    ota_connect_gpg_command="$( \which gpg2 2>/dev/null )" &&
+    [[ ${ota_connect_gpg_command} != "/cygdrive/"* ]]
   } || {
-    hereos_gpg_command="$( \which gpg 2>/dev/null )" &&
-    [[ ${hereos_gpg_command} != "/cygdrive/"* ]]
-  } || hereos_gpg_command=""
+    ota_connect_gpg_command="$( \which gpg 2>/dev/null )" &&
+    [[ ${ota_connect_gpg_command} != "/cygdrive/"* ]]
+  } || ota_connect_gpg_command=""
 
-  debug "Detected GPG program: '$hereos_gpg_command'"
+  debug "Detected GPG program: '$ota_connect_gpg_command'"
 
-  [[ -n "$hereos_gpg_command" ]] || return $?
+  [[ -n "$ota_connect_gpg_command" ]] || return $?
 }
 
 # duplication marker rdjgndfnghdfnhgfdhbghdbfhgbfdhbn
 verify_package_pgp()
 {
   if
-    "${hereos_gpg_command}" --verify "$2" "$1"
+    "${ota_connect_gpg_command}" --verify "$2" "$1"
   then
     log "GPG verified '$1'"
   else
     typeset _ret=$?
     log "\
-Warning, HereOS 1.26.0 introduces signed releases and automated check of signatures when GPG software found. \
-Assuming you trust Michal Papis import the mpapis public key (downloading the signatures).
-
-GPG signature verification failed for '$1' - '$3'! Try to install GPG v2 and then fetch the public key:
-
-    ${SUDO_USER:+sudo }gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
-
-or if it fails:
-
-    command curl -sSL https://hereos.io/mpapis.asc | ${SUDO_USER:+sudo }${hereos_gpg_command##*/} --import -
-
-the key can be compared with:
-
-    https://hereos.io/mpapis.asc
-    https://keybase.io/mpapis
-
-NOTE: GPG version 2.1.17 have a bug which cause failures during fetching keys from remote server. Please downgrade \
-or upgrade to newer version (if available) or use the second method described above.
+Warning, OTA Connect SDK 1.26.0 introduces signed releases and automated check of signatures when GPG software found.
 "
     exit $_ret
   fi
@@ -450,14 +395,14 @@ verify_pgp()
     return 0
   }
 
-  hereos_install_gpg_setup ||
+  ota_connect_install_gpg_setup ||
   {
     log "Found PGP signature at: '$1',
 but no GPG software exists to validate it, skipping."
     return 0
   }
 
-  verify_package_pgp "${hereos_archives_path}/$2" "${hereos_archives_path}/$2.asc" "$1"
+  verify_package_pgp "${ota_connect_archives_path}/$2" "${ota_connect_archives_path}/$2.asc" "$1"
 }
 
 get_and_unpack()
@@ -470,101 +415,101 @@ get_and_unpack()
   get_package "$_url" "$_file" || return $?
   verify_pgp "$_verify_pgp" "$_file" || return $?
 
-  [[ -d "${hereos_src_path}/hereos" ]] || \mkdir -p "${hereos_src_path}/hereos"
-  __hereos_cd "${hereos_src_path}/hereos" ||
+  [[ -d "${ota_connect_src_path}/ota-connect" ]] || \mkdir -p "${ota_connect_src_path}/ota-connect"
+  __ota_connect_cd "${ota_connect_src_path}/ota-connect" ||
   {
     _return=$?
-    log "Could not change directory '${hereos_src_path}/hereos'."
+    log "Could not change directory '${ota_connect_src_path}/ota-connect'."
     return $_return
   }
 
   # Remove existing installation
   typeset _cleanup_cmd
-  _cleanup_cmd="rm -rf ${hereos_src_path}/hereos/{,.[!.],..?}*"
+  _cleanup_cmd="rm -rf ${ota_connect_src_path}/ota-connect/{,.[!.],..?}*"
 
   $_cleanup_cmd || {
     _return=$?
-      log "Could not remove old HereOS sources. Try:\n\n\tsudo $_cleanup_cmd\n\nThen retry your task again."
+      log "Could not remove old OTA Connect sources. Try:\n\n\tsudo $_cleanup_cmd\n\nThen retry your task again."
       return $_return
   }
 
   # Unpack sources
-  __hereos_debug_command $hereos_tar_command xzf ${hereos_archives_path}/${_file} ${hereos_tar_options:-} --strip-components 1 ||
+  __ota_connect_debug_command $ota_connect_tar_command xzf ${ota_connect_archives_path}/${_file} ${ota_connect_tar_options:-} --strip-components 1 ||
   {
     _return=$?
-    log "Could not extract HereOS sources."
+    log "Could not extract OTA Connect sources."
     return $_return
   }
 }
 
-hereos_install_default_settings()
+ota_connect_install_default_settings()
 {
   # Tracing, if asked for.
   if
-    [[ "$*" == *--trace* ]] || (( ${hereos_trace_flag:-0} > 0 ))
+    [[ "$*" == *--trace* ]] || (( ${ota_connect_trace_flag:-0} > 0 ))
   then
     set -o xtrace
-    hereos_trace_flag=1
+    ota_connect_trace_flag=1
   fi
 
   # Variable initialization, remove trailing slashes if they exist on HOME
   true \
-    ${hereos_trace_flag:=0} ${hereos_debug_flag:=0}\
-    ${hereos_ignore_hereosrc:=0} HOME="${HOME%%+(\/)}"
+    ${ota_connect_trace_flag:=0} ${ota_connect_debug_flag:=0}\
+    ${ota_connect_ignore_ota_connectrc:=0} HOME="${HOME%%+(\/)}"
 
   if
-    (( hereos_ignore_hereosrc == 0 ))
+    (( ota_connect_ignore_ota_connectrc == 0 ))
   then
-    for hereosrc in /etc/hereosrc "$HOME/.hereosrc"
+    for ota_connectrc in /etc/ota_connectrc "$HOME/.ota-connectrc"
     do
       if
-        [[ -s "$hereosrc" ]]
+        [[ -s "$ota_connectrc" ]]
       then
         if
-          GREP_OPTIONS="" \grep '^\s*hereos .*$' "$hereosrc" >/dev/null 2>&1
+          GREP_OPTIONS="" \grep '^\s*ota-connect .*$' "$ota_connectrc" >/dev/null 2>&1
         then
           printf "%b" "
-  Error: $hereosrc is for hereos settings only.
-  hereos CLI may NOT be called from within $hereosrc.
-  Skipping the loading of $hereosrc
+  Error: $ota_connectrc is for ota_connect settings only.
+  ota_connect CLI may NOT be called from within $ota_connectrc.
+  Skipping the loading of $ota_connectrc
   "
           exit 1
         else
-          source "$hereosrc"
+          source "$ota_connectrc"
         fi
       fi
     done
   fi
 
   if
-    [[ -z "${hereos_path:-}" ]]
+    [[ -z "${ota_connect_path:-}" ]]
   then
     if
       (( UID == 0 ))
     then
-      hereos_user_install_flag=0
-      hereos_prefix="/usr/local"
-      hereos_path="${hereos_prefix}/hereos"
+      ota_connect_user_install_flag=0
+      ota_connect_prefix="/usr/local"
+      ota_connect_path="${ota_connect_prefix}/ota-connect"
     else
-      hereos_user_install_flag=1
-      hereos_prefix="$HOME"
-      hereos_path="${hereos_prefix}/.hereos"
+      ota_connect_user_install_flag=1
+      ota_connect_prefix="$HOME"
+      ota_connect_path="${ota_connect_prefix}/.ota-connect"
     fi
   fi
-  if [[ -z "${hereos_prefix}" ]]
-  then hereos_prefix=$( dirname $hereos_path )
+  if [[ -z "${ota_connect_prefix}" ]]
+  then ota_connect_prefix=$( dirname $ota_connect_path )
   fi
 
   # duplication marker kkdfkgnjfndgjkndfjkgnkfjdgn
-  [[ -n "${hereos_user_install_flag:-}" ]] ||
-  case "$hereos_path" in
-    (/usr/local/hereos)         hereos_user_install_flag=0 ;;
-    ($HOME/*|/${USER// /_}*) hereos_user_install_flag=1 ;;
-    (*)                      hereos_user_install_flag=0 ;;
+  [[ -n "${ota_connect_user_install_flag:-}" ]] ||
+  case "$ota_connect_path" in
+    (/usr/local/ota-connect)         ota_connect_user_install_flag=0 ;;
+    ($HOME/*|/${USER// /_}*) ota_connect_user_install_flag=1 ;;
+    (*)                      ota_connect_user_install_flag=0 ;;
   esac
 }
 
-hereos_install_parse_params()
+ota_connect_install_parse_params()
 {
   install_rubies=()
   install_gems=()
@@ -579,7 +524,7 @@ hereos_install_parse_params()
 
       (--trace)
         set -o xtrace
-        hereos_trace_flag=1
+        ota_connect_trace_flag=1
         flags=( -x "${flags[@]}" "$token" )
         forwarded_flags+=( "$token" )
         ;;
@@ -589,21 +534,21 @@ hereos_install_parse_params()
         forwarded_flags+=( "$token" )
         token=${token#--}
         token=${token//-/_}
-        export "hereos_${token}_flag"=1
+        export "ota_connect_${token}_flag"=1
         printf "%b" "Turning on ${token/_/ } mode.\n"
         ;;
 
       (--path)
         if [[ -n "${1:-}" ]]
         then
-          hereos_path="$1"
+          ota_connect_path="$1"
           shift
         else
           fail "--path must be followed by a path."
         fi
         ;;
 
-      (--branch|branch) # Install HereOS from a given branch
+      (--branch|branch) # Install OTA Connect from a given branch
         if [[ -n "${1:-}" ]]
         then
           case "$1" in
@@ -612,15 +557,11 @@ hereos_install_parse_params()
               ;;
             (*/)
               branch=master
-              if [[ "${1%/}" -ne hereos ]] && [[ "${1%/}" -ne mpapis ]]
-              then sources=(github.com/${1%/}/hereos)
-              fi
+              sources=(github.com/${1%/}/ota-connect-sdk)
               ;;
             (*/*)
               branch=${1#*/}
-              if [[ "${1%%/*}" -ne hereos ]] && [[ "${1%%/*}" -ne mpapis ]]
-              then sources=(github.com/${1%%/*}/hereos)
-              fi
+              sources=(github.com/${1%%/*}/ota-connect-sdk)
               ;;
             (*)
               branch="$1"
@@ -650,25 +591,25 @@ hereos_install_parse_params()
       (--user-install|--ignore-dotfiles)
         token=${token#--}
         token=${token//-/_}
-        export "hereos_${token}_flag"=1
+        export "ota_connect_${token}_flag"=1
         printf "%b" "Turning on ${token/_/ } mode.\n"
         ;;
 
       (--auto-dotfiles)
         flags+=( "$token" )
-        export "hereos_auto_dotfiles_flag"=1
+        export "ota_connect_auto_dotfiles_flag"=1
         printf "%b" "Turning on auto dotfiles mode.\n"
         ;;
 
       (--auto)
-        export "hereos_auto_dotfiles_flag"=1
+        export "ota_connect_auto_dotfiles_flag"=1
         printf "%b" "Warning, --auto is deprecated in favor of --auto-dotfiles.\n"
         ;;
 
       (--verify-downloads)
         if [[ -n "${1:-}" ]]
         then
-          export hereos_verify_downloads_flag="$1"
+          export ota_connect_verify_downloads_flag="$1"
           forwarded_flags+=( "$token" "$1" )
           shift
         else
@@ -678,7 +619,7 @@ hereos_install_parse_params()
 
       (--autolibs=*)
         flags+=( "$token" )
-        export hereos_autolibs_flag="${token#--autolibs=}"
+        export ota_connect_autolibs_flag="${token#--autolibs=}"
         forwarded_flags+=( "$token" )
         ;;
 
@@ -688,8 +629,8 @@ hereos_install_parse_params()
         token="${token%%=*}"
         token="${token#--}"
         token="${token//-/_}"
-        export "hereos_${token}"="${value}"
-        printf "%b" "Installing HereOS ${token/_/ }: ${value}.\n"
+        export "ota_connect_${token}"="${value}"
+        printf "%b" "Installing OTA Connect ${token/_/ }: ${value}.\n"
         ;;
 
       (--version|version)
@@ -728,8 +669,8 @@ hereos_install_parse_params()
         install_gems+=( ${token//,/ } )
         ;;
 
-      (--add-to-hereos-group)
-        export hereos_add_users_to_hereos_group="$1"
+      (--add-to-ota_connect-group)
+        export ota_connect_add_users_to_ota_connect_group="$1"
         shift
         ;;
 
@@ -757,60 +698,57 @@ hereos_install_parse_params()
   then sources=("${DEFAULT_SOURCES[@]}")
   fi
 
-  hereos_src_path="$hereos_path/src"
-  hereos_archives_path="$hereos_path/archives"
-  hereos_releases_url="https://hereos.io/releases"
+  ota_connect_src_path="$ota_connect_path/src"
+  ota_connect_archives_path="$ota_connect_path/archives"
+  ota_connect_releases_url="https://ota_connect.io/releases"
 }
 
-hereos_install_validate_hereos_path()
+ota_connect_install_validate_ota_connect_path()
 {
-  case "$hereos_path" in
+  case "$ota_connect_path" in
     (*[[:space:]]*)
       printf "%b" "
 It looks you are one of the happy *space* users (in home dir name),
-HereOS is not yet fully ready for it, use this trick to fix it:
+OTA Connect is not yet fully ready for it, use this trick to fix it:
 
-    sudo mkdir -p /${USER// /_}.hereos
-    sudo chown -R \"$USER:\" /${USER// /_}.hereos
-    echo \"export hereos_path=/${USER// /_}.hereos\" >> \"$HOME/.hereosrc\"
+    sudo mkdir -p /${USER// /_}.ota-connect
+    sudo chown -R \"$USER:\" /${USER// /_}.ota-connect
+    echo \"export ota_connect_path=/${USER// /_}.ota-connect\" >> \"$HOME/.ota-connectrc\"
 
 and start installing again.
 
 "
       exit 2
     ;;
-    (/usr/share/ruby-hereos)
+    (/usr/share/ruby-ota_connect)
       printf "%b" "
 It looks you are one of the happy Ubuntu users,
-HereOS packaged by Ubuntu is old and broken,
-follow this link for details how to fix:
-
-  https://stackoverflow.com/a/9056395/497756
+OTA Connect SDK packaged by Ubuntu is old and broken,
 
 "
-      [[ "${hereos_uses_broken_ubuntu_path:-no}" == "yes" ]] || exit 3
+      [[ "${ota_connect_uses_broken_ubuntu_path:-no}" == "yes" ]] || exit 3
     ;;
   esac
 
-  if [[ "$hereos_path" != "/"* ]]
-  then fail "The hereos install path must be fully qualified. Tried $hereos_path"
+  if [[ "$ota_connect_path" != "/"* ]]
+  then fail "The ota_connect install path must be fully qualified. Tried $ota_connect_path"
   fi
 }
 
-hereos_install_validate_volume_mount_mode()
+ota_connect_install_validate_volume_mount_mode()
 {
   \typeset path partition test_exec
 
-  path=$hereos_path
+  path=$ota_connect_path
 
-  # Directory $hereos_path might not exists at this point so we need to traverse the tree upwards
+  # Directory $ota_connect_path might not exists at this point so we need to traverse the tree upwards
   while [[ -n "$path" ]]
   do
       if [[ -d $path ]]
       then
         partition=`df -P $path | awk 'END{print $1}'`
 
-        test_exec=$(mktemp $path/hereos-exec-test.XXXXXX)
+        test_exec=$(mktemp $path/ota_connect-exec-test.XXXXXX)
         echo '#!/bin/sh' > "$test_exec"
         chmod +x "$test_exec"
 
@@ -818,9 +756,9 @@ hereos_install_validate_volume_mount_mode()
         then
           rm -f "$test_exec"
           printf "%b" "
-It looks that scripts located in ${path}, which would be HereOS destination ${hereos_path},
+It looks that scripts located in ${path}, which would be OTA Connect destination ${ota_connect_path},
 are not executable. One of the reasons might be that partition ${partition} holding this location
-is mounted in *noexec* mode, which prevents HereOS from working correctly. Please verify your setup
+is mounted in *noexec* mode, which prevents OTA Connect from working correctly. Please verify your setup
 and re-mount partition ${partition} without the noexec option."
           exit 2
         fi
@@ -833,11 +771,11 @@ and re-mount partition ${partition} without the noexec option."
   done
 }
 
-hereos_install_select_and_get_version()
+ota_connect_install_select_and_get_version()
 {
   typeset _version_release
 
-  for dir in "$hereos_src_path" "$hereos_archives_path"
+  for dir in "$ota_connect_src_path" "$ota_connect_archives_path"
   do
     [[ -d "$dir" ]] || mkdir -p "$dir"
   done
@@ -854,7 +792,7 @@ hereos_install_select_and_get_version()
       ;;
 
     (latest-minor)
-      version="$(\cat "$hereos_path/VERSION")"
+      version="$(\cat "$ota_connect_path/VERSION")"
       install_release sources[@] $(fetch_version sources[@] ${version%.*}) || exit $?
       ;;
 
@@ -870,47 +808,47 @@ hereos_install_select_and_get_version()
       fail "Something went wrong, unrecognized version '$version'"
       ;;
   esac
-  echo "${_version_release}" > "$hereos_path/RELEASE"
+  echo "${_version_release}" > "$ota_connect_path/RELEASE"
 }
 
-hereos_install_main()
+ota_connect_install_main()
 {
   [[ -f ./scripts/install ]] ||
   {
-    log "'./scripts/install' can not be found for installation, something went wrong, it usually means your 'tar' is broken, please report it here: https://github.com/hereos/hereos/issues"
+    log "'./scripts/install' can not be found for installation, something went wrong, it usually means your 'tar' is broken, please report it here: https://github.com/advancedtelematic/ota-connect-sdk/issues"
     return 127
   }
 
   # required flag - path to install
-  flags+=( --path "$hereos_path" )
+  flags+=( --path "$ota_connect_path" )
   \command bash "${flags[@]}"
 }
 
-hereos_install_ruby_and_gems()
+ota_connect_install_ruby_and_gems()
 (
   if
     (( ${#install_rubies[@]} > 0 ))
   then
-    source ${hereos_scripts_path:-${hereos_path}/scripts}/hereos
-    source ${hereos_scripts_path:-${hereos_path}/scripts}/functions/version
-    __hereos_print_headline
+    source ${ota_connect_scripts_path:-${ota_connect_path}/scripts}/ota-connect
+    source ${ota_connect_scripts_path:-${ota_connect_path}/scripts}/functions/version
+    __ota_connect_print_headline
 
     for _ruby in ${install_rubies[@]}
-    do command hereos "${forwarded_flags[@]}" install ${_ruby} -j 2
+    do command ota_connect "${forwarded_flags[@]}" install ${_ruby} -j 2
     done
     # set the first one as default, skip rest
     for _ruby in ${install_rubies[@]}
     do
-      hereos "${forwarded_flags[@]}" alias create default ${_ruby}
+      ota_connect "${forwarded_flags[@]}" alias create default ${_ruby}
       break
     done
 
     for _gem in ${install_gems[@]}
-    do hereos "${forwarded_flags[@]}" all do gem install ${_gem}
+    do ota_connect "${forwarded_flags[@]}" all do gem install ${_gem}
     done
 
     printf "%b" "
-  * To start using HereOS you need to run \`source $hereos_path/scripts/hereos\`
+  * To start using OTA Connect SDK you need to run \`source $ota_connect_path/scripts/ota-connect\`
     in all your open shell windows, in rare cases you need to reopen all shell windows.
 "
 
@@ -924,17 +862,17 @@ hereos_install_ruby_and_gems()
   fi
 )
 
-hereos_install()
+ota_connect_install()
 {
-  hereos_install_initialize
-  hereos_install_commands_setup
-  hereos_install_default_settings
-  hereos_install_parse_params "$@"
-  hereos_install_validate_hereos_path
-  hereos_install_validate_volume_mount_mode
-  hereos_install_select_and_get_version
-  hereos_install_main
-  hereos_install_ruby_and_gems
+  ota_connect_install_initialize
+  ota_connect_install_commands_setup
+  ota_connect_install_default_settings
+  ota_connect_install_parse_params "$@"
+  ota_connect_install_validate_ota_connect_path
+  ota_connect_install_validate_volume_mount_mode
+  ota_connect_install_select_and_get_version
+  ota_connect_install_main
+  ota_connect_install_ruby_and_gems
 }
 
-hereos_install "$@"
+ota_connect_install "$@"

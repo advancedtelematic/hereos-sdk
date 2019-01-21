@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <unistd.h>
 
-#include "hereos/echo.h"
+#include "ota-connect/echo.h"
 
 int main(int argc, char **argv)
 {

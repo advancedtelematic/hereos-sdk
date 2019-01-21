@@ -1,5 +1,5 @@
 DESCRIPTION = "ingestion" 
-SECTION = "hereos"
+SECTION = "ota-connect"
 LICENSE = "CLOSED"
 PV = "0.0.1"
 PR = "r0"

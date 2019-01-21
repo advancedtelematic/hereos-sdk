@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""HereOS SDK script
+"""OTA Connect SDK script
 
-   Very basic initial script for HereOS SDK
+   Very basic initial script for OTA Connect SDK
 """
 
 import getopt
@@ -27,10 +27,10 @@ class TColors:
 
 def usage():
     """Print usage information"""
-    print "Welcome to the HereOS SDK"
+    print "Welcome to the OTA Connect SDK"
     print ""
-    print "Usage: hereos [--help|-h|--version|-v] [COMMAND]"
-    print "\tinit <path>\tInitializes a new HereOS project at the specified path"
+    print "Usage: ota-connect [--help|-h|--version|-v] [COMMAND]"
+    print "\tinit <path>\tInitializes a new OTA Connect project at the specified path"
     print "\tlist-services\tShows a list of available microsservices and their installation status"
     print "\tenable-service <service_name>\tAdds microservice to the current project's build"
     print ("\tcreate-server <service_name>\tCreates a new microservice from the server "
@@ -48,7 +48,7 @@ class NotAProjectFolder(Exception):
 
 def version():
     """Print the version string"""
-    print "HereOS Version: 0.0.1\n"
+    print "OTA Connect Version: 0.0.1\n"
 
 def project_yocto_local_conf_path():
     """Return the path for the yocto local.conf"""
@@ -89,7 +89,7 @@ def project_services_config_path():
 
 def list_services():
     """Print a list of available SDK services
-       If executed from a HereOS project folder, will include information about the active
+       If executed from a OTA Connect project folder, will include information about the active
        services in this project
     """
     project = False
@@ -102,7 +102,7 @@ def list_services():
     if project:
         print "Available microservices in the current project:\n"
     else:
-        print "Available microservices in the HereOS SDK:\n"
+        print "Available microservices in the OTA Connect SDK:\n"
 
     for service in yaml.load(io.open(services_config_path, "r")):
         if "enabled" in service:
@@ -176,7 +176,7 @@ def find_project_path():
     """
     path = os.getcwd()
     while path != '/':
-        if os.path.exists(os.path.join(path, ".hereos_project")):
+        if os.path.exists(os.path.join(path, ".ota_connect_project")):
             return path
         else:
             path = os.path.realpath(os.path.join(path, ".."))
@@ -298,10 +298,10 @@ def init_sdk_project(path):
     target = path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
 
     if os.path.exists(target):
-        if os.path.exists(os.path.join(target, ".hereos_project")):
-            print "Project folder '%s' already exists and is a hereos project - will only 'repo sync'" % target
+        if os.path.exists(os.path.join(target, ".ota_connect_project")):
+            print "Project folder '%s' already exists and is a OTA Connect project - will only 'repo sync'" % target
         else:
-            print "Project folder '%s' already exists and is not a hereos proejct folder - will not overwrite" % target
+            print "Project folder '%s' already exists and is not a OTA Connect project folder - will not overwrite" % target
             sys.exit(2)
     else:
         # Create target folder
@@ -321,7 +321,7 @@ def init_sdk_project(path):
                         os.path.join(target, "config", "services.yaml"))
 
         # Create project marker
-        open(os.path.join(target, ".hereos_project"), 'a').close()
+        open(os.path.join(target, ".ota_connect_project"), 'a').close()
 
     init_yocto_project(os.path.join(target, "yocto"))
 
@@ -333,7 +333,7 @@ def project_services_path():
 
 def service_yocto_path(service_name):
     """Returns the path to the yocto config files for a service"""
-    return os.path.join(project_yocto_path(), project_layer_name(), "recipes-hereos", service_name)
+    return os.path.join(project_yocto_path(), project_layer_name(), "recipes-ota-connect", service_name)
 
 def copy_with_substitution(src, dest, service_name):
     """Copies a file from src to dest, replacing ##SERVICE_NAME with service_name"""
@@ -352,18 +352,18 @@ def create_client(client_name):
         if not os.path.exists(project_services_path()):
             os.makedirs(project_services_path())
     except NotAProjectFolder:
-        print "Unable to create a new service - not in a HereOS project folder"
+        print "Unable to create a new service - not in a OTA Connect project folder"
         sys.exit(2)
     service_path = os.path.join(project_services_path(), client_name)
 
     # Copy the template project to the new service folder
-    print "Creating new HereOS template client at: %s" % service_path
+    print "Creating new OTA Connect template client at: %s" % service_path
     client_template_path = os.path.join(sdk_folder(), "client_template")
     copy_template_folder_with_substitutions(client_template_path, service_path, client_name)
 
     print "Copying common here-os includes"
-    hereos_common_path = os.path.join(sdk_folder(), "hereos-common")
-    shutil.copytree(hereos_common_path, os.path.join(service_path, "hereos"))
+    ota_connect_common_path = os.path.join(sdk_folder(), "ota-connect-common")
+    shutil.copytree(ota_connect_common_path, os.path.join(service_path, "ota-connect"))
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),
@@ -400,18 +400,18 @@ def create_server(server_name):
         if not os.path.exists(project_services_path()):
             os.makedirs(project_services_path())
     except NotAProjectFolder:
-        print "Unable to create a new service - not in a HereOS project folder"
+        print "Unable to create a new service - not in a OTA Connect project folder"
         sys.exit(2)
     service_path = os.path.join(project_services_path(), server_name)
 
     # Copy the template project to the new service folder
-    print "Creating new HereOS template service at: %s" % service_path
+    print "Creating new OTA Connect template service at: %s" % service_path
     server_template_path = os.path.join(sdk_folder(), "server_template")
     copy_template_folder_with_substitutions(server_template_path, service_path, server_name)
 
     print "Copying common here-os includes"
-    hereos_common_path = os.path.join(sdk_folder(), "hereos-common")
-    shutil.copytree(hereos_common_path, os.path.join(service_path, "hereos"))
+    ota_connect_common_path = os.path.join(sdk_folder(), "ota-connect-common")
+    shutil.copytree(ota_connect_common_path, os.path.join(service_path, "ota-connect"))
 
     # Create the recipe in the Yocto project
     copy_with_substitution(os.path.join(sdk_folder(), "yocto_template", "recipe-template.bb"),

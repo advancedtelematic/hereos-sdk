@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.8.9)
 project (##SERVICE_NAME)
 
-add_subdirectory("hereos")
+add_subdirectory("ota-connect")
 
-include (hereos/grpc.cmake.inc)
+include (ota-connect/grpc.cmake.inc)
 
 include_directories("${GRPC_INCLUDES}")
 
 add_executable(##SERVICE_NAME main.cpp)
-target_link_libraries(##SERVICE_NAME hereos_echo hereos_ingestion ${GRPC_LIBS})
+target_link_libraries(##SERVICE_NAME ota_connect_echo ota_connect_ingestion ${GRPC_LIBS})

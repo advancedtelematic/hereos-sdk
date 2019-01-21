@@ -47,5 +47,5 @@ add_custom_command(
 
 set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all-symbols")
 
-add_library(hereos_echo echo.cc ${echo_proto_srcs} ${echo_grpc_srcs})
-add_library(hereos_ingestion ingestion.cc ${ingestion_proto_srcs} ${ingestion_grpc_srcs})
+add_library(ota_connect_echo echo.cc ${echo_proto_srcs} ${echo_grpc_srcs})
+add_library(ota_connect_ingestion ingestion.cc ${ingestion_proto_srcs} ${ingestion_grpc_srcs})
