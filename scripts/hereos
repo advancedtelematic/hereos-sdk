@@ -234,14 +234,14 @@ def init_yocto_project(path):
                 print "Error cloning repo project. Check internet connection"
                 sys.exit(process.returncode)
 
-        print "Syncing repo..."
-        print TColors.OKBLUE
-        process = subprocess.Popen(["repo", "sync"], cwd=path, shell=False)
-        process.wait()
-        print TColors.ENDC
-        if process.returncode != 0:
-            print "Error syncing repo. Check internet connection"
-            sys.exit(process.returncode)
+            print "Syncing repo..."
+            print TColors.OKBLUE
+            process = subprocess.Popen(["repo", "sync"], cwd=path, shell=False)
+            process.wait()
+            print TColors.ENDC
+            if process.returncode != 0:
+                print "Error syncing repo. Check internet connection"
+                sys.exit(process.returncode)
 
         print "Extracting yocto environment"
         command = shlex.split(("env -i bash -c "
